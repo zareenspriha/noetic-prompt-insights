@@ -1,0 +1,58 @@
+"""Canonical gateway schema, mirrored for independent installed-package use."""
+
+SCHEMA = {
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "$id": "urn:noetic-hackathon:gateway-event:1",
+    "title": "Gateway event v1",
+    "type": "object",
+    "additionalProperties": False,
+    "properties": {
+        "schema_version": {"const": 1},
+        "event_type": {"const": "llm.request"},
+        "event_id": {"type": "string", "minLength": 1, "maxLength": 128},
+        "request_id": {"type": "string", "minLength": 1, "maxLength": 128},
+        "user_id": {"type": "string", "minLength": 1, "maxLength": 128},
+        "team_id": {"type": "string", "minLength": 1, "maxLength": 128},
+        "model": {"type": "string", "minLength": 1, "maxLength": 128},
+        "timestamp": {"type": "string", "format": "date-time", "pattern": "Z$"},
+        "provider": {"enum": ["mock", "openai", "anthropic"]},
+        "status": {"enum": ["succeeded", "blocked", "failed"]},
+        "usage_source": {"enum": ["provider", "estimate", "mock", "unavailable"]},
+        "latency_ms": {"type": "number", "minimum": 0},
+        "input_tokens": {"type": ["integer", "null"], "minimum": 0},
+        "output_tokens": {"type": ["integer", "null"], "minimum": 0},
+        "cost_usd": {"type": ["number", "null"], "minimum": 0},
+        "policy_actions": {
+            "type": "array",
+            "maxItems": 32,
+            "items": {"type": "string", "pattern": "^[a-z][a-z0-9_]{0,63}$"},
+        },
+        "synthetic": {"type": "boolean"},
+        "prompt_redacted": {"type": "string", "maxLength": 16000},
+    },
+    "required": [
+        "schema_version",
+        "event_type",
+        "event_id",
+        "request_id",
+        "user_id",
+        "team_id",
+        "model",
+        "timestamp",
+        "provider",
+        "status",
+        "usage_source",
+        "latency_ms",
+        "input_tokens",
+        "output_tokens",
+        "cost_usd",
+        "policy_actions",
+        "synthetic",
+    ],
+    "allOf": [
+        {
+            "if": {"required": ["prompt_redacted"]},
+            "then": {"properties": {"synthetic": {"const": True}}},
+        }
+    ],
+}

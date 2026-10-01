@@ -1,0 +1,46 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "id",
+    "text",
+    "topic",
+    "template_family",
+    "synthetic",
+    "sensitivity"
+  ],
+  "properties": {
+    "id": {
+      "type": "string"
+    },
+    "text": {
+      "type": "string",
+      "maxLength": 16000
+    },
+    "topic": {
+      "enum": [
+        "coding",
+        "writing",
+        "data_analysis",
+        "customer_email",
+        "legal",
+        "hr",
+        "other"
+      ]
+    },
+    "template_family": {
+      "type": "string"
+    },
+    "synthetic": {
+      "const": true
+    },
+    "sensitivity": {
+      "enum": [
+        "public",
+        "internal",
+        "confidential"
+      ]
+    }
+  }
+}
