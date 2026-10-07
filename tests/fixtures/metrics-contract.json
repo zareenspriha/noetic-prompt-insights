@@ -1,0 +1,571 @@
+{
+  "evalSet": "benchmark",
+  "n": 70,
+  "models": [
+    {
+      "model": "keyword",
+      "modelVersion": "MOCK keyword baseline",
+      "topicMacroF1": 0.6,
+      "sensitivityMacroF1": 0.715,
+      "confidentialRecall": 0.435,
+      "confidentialFalseNegatives": 13,
+      "topicPerClass": [
+        {
+          "label": "coding",
+          "precision": 0.6,
+          "recall": 0.6,
+          "f1": 0.6,
+          "support": 10
+        },
+        {
+          "label": "writing",
+          "precision": 0.6,
+          "recall": 0.6,
+          "f1": 0.6,
+          "support": 10
+        },
+        {
+          "label": "data_analysis",
+          "precision": 0.6,
+          "recall": 0.6,
+          "f1": 0.6,
+          "support": 10
+        },
+        {
+          "label": "customer_email",
+          "precision": 0.6,
+          "recall": 0.6,
+          "f1": 0.6,
+          "support": 10
+        },
+        {
+          "label": "legal",
+          "precision": 0.6,
+          "recall": 0.6,
+          "f1": 0.6,
+          "support": 10
+        },
+        {
+          "label": "hr",
+          "precision": 0.6,
+          "recall": 0.6,
+          "f1": 0.6,
+          "support": 10
+        },
+        {
+          "label": "other",
+          "precision": 0.6,
+          "recall": 0.6,
+          "f1": 0.6,
+          "support": 10
+        }
+      ],
+      "sensitivityPerClass": [
+        {
+          "label": "public",
+          "precision": 0.793,
+          "recall": 1.0,
+          "f1": 0.885,
+          "support": 23
+        },
+        {
+          "label": "internal",
+          "precision": 0.581,
+          "recall": 0.75,
+          "f1": 0.655,
+          "support": 24
+        },
+        {
+          "label": "confidential",
+          "precision": 1.0,
+          "recall": 0.435,
+          "f1": 0.606,
+          "support": 23
+        }
+      ],
+      "topicConfusion": {
+        "labels": [
+          "coding",
+          "writing",
+          "data_analysis",
+          "customer_email",
+          "legal",
+          "hr",
+          "other"
+        ],
+        "matrix": [
+          [
+            6,
+            1,
+            1,
+            1,
+            1,
+            0,
+            0
+          ],
+          [
+            0,
+            6,
+            1,
+            1,
+            1,
+            1,
+            0
+          ],
+          [
+            0,
+            0,
+            6,
+            1,
+            1,
+            1,
+            1
+          ],
+          [
+            1,
+            0,
+            0,
+            6,
+            1,
+            1,
+            1
+          ],
+          [
+            1,
+            1,
+            0,
+            0,
+            6,
+            1,
+            1
+          ],
+          [
+            1,
+            1,
+            1,
+            0,
+            0,
+            6,
+            1
+          ],
+          [
+            1,
+            1,
+            1,
+            1,
+            0,
+            0,
+            6
+          ]
+        ]
+      },
+      "sensitivityConfusion": {
+        "labels": [
+          "public",
+          "internal",
+          "confidential"
+        ],
+        "matrix": [
+          [
+            23,
+            0,
+            0
+          ],
+          [
+            6,
+            18,
+            0
+          ],
+          [
+            0,
+            13,
+            10
+          ]
+        ]
+      },
+      "costPer1kUsd": 0.0,
+      "p50LatencyMs": 0.2
+    },
+    {
+      "model": "knn",
+      "modelVersion": "MOCK all-MiniLM-L6-v2 k=5",
+      "topicMacroF1": 0.8,
+      "sensitivityMacroF1": 0.886,
+      "confidentialRecall": 0.87,
+      "confidentialFalseNegatives": 3,
+      "topicPerClass": [
+        {
+          "label": "coding",
+          "precision": 0.8,
+          "recall": 0.8,
+          "f1": 0.8,
+          "support": 10
+        },
+        {
+          "label": "writing",
+          "precision": 0.8,
+          "recall": 0.8,
+          "f1": 0.8,
+          "support": 10
+        },
+        {
+          "label": "data_analysis",
+          "precision": 0.8,
+          "recall": 0.8,
+          "f1": 0.8,
+          "support": 10
+        },
+        {
+          "label": "customer_email",
+          "precision": 0.8,
+          "recall": 0.8,
+          "f1": 0.8,
+          "support": 10
+        },
+        {
+          "label": "legal",
+          "precision": 0.8,
+          "recall": 0.8,
+          "f1": 0.8,
+          "support": 10
+        },
+        {
+          "label": "hr",
+          "precision": 0.8,
+          "recall": 0.8,
+          "f1": 0.8,
+          "support": 10
+        },
+        {
+          "label": "other",
+          "precision": 0.8,
+          "recall": 0.8,
+          "f1": 0.8,
+          "support": 10
+        }
+      ],
+      "sensitivityPerClass": [
+        {
+          "label": "public",
+          "precision": 0.917,
+          "recall": 0.957,
+          "f1": 0.936,
+          "support": 23
+        },
+        {
+          "label": "internal",
+          "precision": 0.833,
+          "recall": 0.833,
+          "f1": 0.833,
+          "support": 24
+        },
+        {
+          "label": "confidential",
+          "precision": 0.909,
+          "recall": 0.87,
+          "f1": 0.889,
+          "support": 23
+        }
+      ],
+      "topicConfusion": {
+        "labels": [
+          "coding",
+          "writing",
+          "data_analysis",
+          "customer_email",
+          "legal",
+          "hr",
+          "other"
+        ],
+        "matrix": [
+          [
+            8,
+            1,
+            1,
+            0,
+            0,
+            0,
+            0
+          ],
+          [
+            0,
+            8,
+            1,
+            1,
+            0,
+            0,
+            0
+          ],
+          [
+            0,
+            0,
+            8,
+            1,
+            1,
+            0,
+            0
+          ],
+          [
+            0,
+            0,
+            0,
+            8,
+            1,
+            1,
+            0
+          ],
+          [
+            0,
+            0,
+            0,
+            0,
+            8,
+            1,
+            1
+          ],
+          [
+            1,
+            0,
+            0,
+            0,
+            0,
+            8,
+            1
+          ],
+          [
+            1,
+            1,
+            0,
+            0,
+            0,
+            0,
+            8
+          ]
+        ]
+      },
+      "sensitivityConfusion": {
+        "labels": [
+          "public",
+          "internal",
+          "confidential"
+        ],
+        "matrix": [
+          [
+            22,
+            1,
+            0
+          ],
+          [
+            2,
+            20,
+            2
+          ],
+          [
+            0,
+            3,
+            20
+          ]
+        ]
+      },
+      "costPer1kUsd": 0.002,
+      "p50LatencyMs": 13
+    },
+    {
+      "model": "llm",
+      "modelVersion": "MOCK llm-zero-shot",
+      "topicMacroF1": 0.9,
+      "sensitivityMacroF1": 0.929,
+      "confidentialRecall": 0.957,
+      "confidentialFalseNegatives": 1,
+      "topicPerClass": [
+        {
+          "label": "coding",
+          "precision": 0.9,
+          "recall": 0.9,
+          "f1": 0.9,
+          "support": 10
+        },
+        {
+          "label": "writing",
+          "precision": 0.9,
+          "recall": 0.9,
+          "f1": 0.9,
+          "support": 10
+        },
+        {
+          "label": "data_analysis",
+          "precision": 0.9,
+          "recall": 0.9,
+          "f1": 0.9,
+          "support": 10
+        },
+        {
+          "label": "customer_email",
+          "precision": 0.9,
+          "recall": 0.9,
+          "f1": 0.9,
+          "support": 10
+        },
+        {
+          "label": "legal",
+          "precision": 0.9,
+          "recall": 0.9,
+          "f1": 0.9,
+          "support": 10
+        },
+        {
+          "label": "hr",
+          "precision": 0.9,
+          "recall": 0.9,
+          "f1": 0.9,
+          "support": 10
+        },
+        {
+          "label": "other",
+          "precision": 0.9,
+          "recall": 0.9,
+          "f1": 0.9,
+          "support": 10
+        }
+      ],
+      "sensitivityPerClass": [
+        {
+          "label": "public",
+          "precision": 0.957,
+          "recall": 0.957,
+          "f1": 0.957,
+          "support": 23
+        },
+        {
+          "label": "internal",
+          "precision": 0.913,
+          "recall": 0.875,
+          "f1": 0.894,
+          "support": 24
+        },
+        {
+          "label": "confidential",
+          "precision": 0.917,
+          "recall": 0.957,
+          "f1": 0.936,
+          "support": 23
+        }
+      ],
+      "topicConfusion": {
+        "labels": [
+          "coding",
+          "writing",
+          "data_analysis",
+          "customer_email",
+          "legal",
+          "hr",
+          "other"
+        ],
+        "matrix": [
+          [
+            9,
+            1,
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          [
+            0,
+            9,
+            1,
+            0,
+            0,
+            0,
+            0
+          ],
+          [
+            0,
+            0,
+            9,
+            1,
+            0,
+            0,
+            0
+          ],
+          [
+            0,
+            0,
+            0,
+            9,
+            1,
+            0,
+            0
+          ],
+          [
+            0,
+            0,
+            0,
+            0,
+            9,
+            1,
+            0
+          ],
+          [
+            0,
+            0,
+            0,
+            0,
+            0,
+            9,
+            1
+          ],
+          [
+            1,
+            0,
+            0,
+            0,
+            0,
+            0,
+            9
+          ]
+        ]
+      },
+      "sensitivityConfusion": {
+        "labels": [
+          "public",
+          "internal",
+          "confidential"
+        ],
+        "matrix": [
+          [
+            22,
+            1,
+            0
+          ],
+          [
+            1,
+            21,
+            2
+          ],
+          [
+            0,
+            1,
+            22
+          ]
+        ]
+      },
+      "costPer1kUsd": 0.21,
+      "p50LatencyMs": 790
+    }
+  ],
+  "agreement": {
+    "pct": 84.3,
+    "cohensKappa": 0.81,
+    "between": [
+      "knn",
+      "llm"
+    ]
+  },
+  "benchmark": {
+    "size": 70,
+    "sha256": "MOCK-not-a-real-hash",
+    "frozenAt": "2026-10-08T15:00:00Z"
+  }
+}
