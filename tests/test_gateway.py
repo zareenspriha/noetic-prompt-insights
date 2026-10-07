@@ -34,6 +34,8 @@ def test_ndjson_schema_privacy_dedup_and_missing_text():
     assert len(rows) == 2
     summary = summarize_gateway(rows)
     assert summary["classified"] == 1 and summary["missing_text"] == 1
+    assert summary["topics"] == {}  # one event is below the default group size
+    summary = summarize_gateway(rows, min_group_size=1, min_distinct_users=1)
     assert summary["topics"] == {"coding": 1}
     assert "Debug python" not in json.dumps(summary)
     for invalid in [

@@ -61,3 +61,18 @@ Authored starter code has no open-source license grant. Dependencies remain subj
 | websockets | 16.1.1 | BSD-3-Clause | [PyPI](https://pypi.org/project/websockets/16.1.1/) |
 | wheel | 0.48.0 | MIT | [PyPI](https://pypi.org/project/wheel/0.48.0/) |
 | setuptools | 82.0.1 | MIT | [PyPI](https://pypi.org/project/setuptools/82.0.1/) |
+| sentence-transformers | 6.1.0 | Apache-2.0 | [PyPI](https://pypi.org/project/sentence-transformers/6.1.0/) |
+| torch | 2.14.1 | BSD-3-Clause | [PyPI](https://pypi.org/project/torch/2.14.1/) |
+| transformers | 5.19.0 | Apache-2.0 | [PyPI](https://pypi.org/project/transformers/5.19.0/) |
+| huggingface_hub | 1.33.0 | Apache-2.0 | [PyPI](https://pypi.org/project/huggingface_hub/1.33.0/) |
+| tokenizers | 0.23.2 | Apache-2.0 | [PyPI](https://pypi.org/project/tokenizers/0.23.2/) |
+| safetensors | 0.8.0 | Apache-2.0 | [PyPI](https://pypi.org/project/safetensors/0.8.0/) |
+
+Other packages added with sentence-transformers are pinned in `requirements.lock`; consult their package metadata for licence terms.
+
+## Data and models
+
+| Item | Licence | Use | Source |
+| --- | --- | --- | --- |
+| databricks-dolly-15k | CC BY-SA 3.0 | Instruction text of 275 rows in `data/dolly-topics.ndjson`; topic labels are ours. Derived file is shared under the same licence. | [Hugging Face](https://huggingface.co/datasets/databricks/databricks-dolly-15k) |
+| sentence-transformers/all-MiniLM-L6-v2 | Apache-2.0 | Pretrained sentence encoder for the k-NN classifier, downloaded on first use | [Hugging Face](https://huggingface.co/sentence-transformers/all-MiniLM-L6-v2) |

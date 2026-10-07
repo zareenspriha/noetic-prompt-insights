@@ -1,0 +1,358 @@
+"""HTTP API for the Next.js frontend. Response shapes follow web/types/api.ts exactly.
+
+    python -m prompt_insights serve  # http://127.0.0.1:8001; port 8000 is the AI Gateway
+
+Prompt text is classified in memory and never logged or stored by this module.
+"""
+
+import json
+import os
+import threading
+import uuid
+from contextlib import asynccontextmanager
+import time
+from functools import lru_cache
+from typing import Literal
+
+from fastapi import FastAPI, HTTPException, Query
+from fastapi.middleware.cors import CORSMiddleware
+from pydantic import BaseModel, ConfigDict, Field
+
+from pathlib import Path
+
+from . import embed, report, risk
+from .core import TOPICS, classify as keyword_topic, generate, split
+from .gateway import MAX_BYTES, parse_ndjson
+from .model import load_dolly
+
+MAX_CHARS = 16000
+K = 5
+# Below this cosine similarity to the closest labelled example, ask a person to check.
+# A review trigger picked by hand, not a probability.
+LOW_SIMILARITY = 0.35
+SEVERITY_RANK = dict(low=0, medium=1, high=2, critical=3)
+TOPICS_TUPLE = tuple(TOPICS)
+MODEL_VERSION = f"{embed.MODEL_NAME.split('/')[-1]}+k{K}"
+EVENTS = Path(
+    os.environ.get("PI_EVENTS", Path(__file__).resolve().parents[2] / "data/demo-events.ndjson")
+)
+ORIGINS = os.environ.get("PI_CORS_ORIGINS", "http://localhost:3000,http://127.0.0.1:3000")
+
+
+@asynccontextmanager
+async def lifespan(_app):
+    if os.environ.get("PI_SKIP_WARMUP") != "1":
+        index()["topic"].explain("warm up")  # load the encoder before the first real request
+        event_labels("knn")  # encode gateway events and apply saved corrections
+    yield
+
+
+app = FastAPI(title="Prompt Insights API", lifespan=lifespan)
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=[origin.strip() for origin in ORIGINS.split(",") if origin.strip()],
+    allow_methods=["GET", "POST"],
+    allow_headers=["Content-Type"],
+)
+
+
+class ClassifyRequest(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    text: str = Field(min_length=1, max_length=MAX_CHARS)
+    allowLlm: bool = False
+
+
+@lru_cache(maxsize=1)
+def index():
+    """Labelled examples the k-NN votes over: synthetic training families plus Dolly train.
+
+    Dolly rows have no sensitivity label; they are published text, so they count as public.
+    Sensitivity is not voted on: synthetic sensitivity comes only from three fixed policy
+    sentences, so a k-NN vote copies that boilerplate (e.g. "name a fictional pet" came out
+    confidential). Until real sensitivity examples exist, the risk rules decide it alone.
+    """
+    dolly_train, _ = load_dolly()
+    rows = split(generate())[0] + [dict(row, sensitivity="public") for row in dolly_train]
+    return dict(
+        rows={row["id"]: row for row in rows},
+        topic=embed.fit_topic(rows, encode=embed.encode),
+    )
+
+
+def knn_prediction(text):
+    started = time.perf_counter()
+    models = index()
+    with LOCK:
+        corrections()  # make sure saved corrections are in the index
+        topic = models["topic"].explain(text)
+    assessed = risk.assess(text, topic["label"], "public")
+    neighbors = []
+    for neighbor in topic["neighbors"]:
+        row = models["rows"][neighbor["id"]]
+        neighbors.append(
+            dict(
+                id=row["id"],
+                textRedacted=risk.redact(row["text"])[0],
+                topic=row["topic"],
+                sensitivity=row["sensitivity"],
+                similarity=neighbor["similarity"],
+            )
+        )
+    prediction = dict(
+        model="knn",
+        topic=topic["label"],
+        sensitivity=assessed["sensitivity"],
+        severity=assessed["severity"],
+        latencyMs=round((time.perf_counter() - started) * 1000, 1),
+        costUsd=None,
+        inputTokens=None,
+        outputTokens=None,
+        modelVersion=MODEL_VERSION,
+        neighbors=neighbors,
+    )
+    return prediction, assessed, topic["nearest_similarity"]
+
+
+@app.get("/health")
+def health():
+    return dict(ok=True, modelVersion=MODEL_VERSION)
+
+
+@app.post("/classify")
+def classify(request: ClassifyRequest):
+    if request.allowLlm:
+        # Wired up in the LLM step; refusing beats silently returning k-NN only.
+        raise HTTPException(501, "LLM classification is not available yet")
+    knn, assessed, nearest = knn_prediction(request.text)
+    return dict(
+        knn=knn,
+        llm=None,
+        agree=None,
+        needsReview=nearest < LOW_SIMILARITY,
+        riskSpans=assessed["riskSpans"],
+        textRedacted=assessed["textRedacted"],
+        llmCostEstimateUsd=0.0,
+    )
+
+
+@lru_cache(maxsize=1)
+def events():
+    """Gateway events to report on, validated against the shared gateway contract."""
+    with EVENTS.open("rb") as stream:
+        return parse_ndjson(stream.read(MAX_BYTES + 1))
+
+
+def classifiable():
+    """Failed and blocked events, and events without text, are never classified."""
+    return {
+        e["event_id"]: e
+        for e in events()
+        if e["status"] == "succeeded" and e.get("prompt_redacted")
+    }
+
+
+@lru_cache(maxsize=1)
+def event_vectors():
+    """Encode every event once; votes are recomputed cheaply as the index learns."""
+    rows = list(classifiable().values())
+    started = time.perf_counter()
+    vectors = embed.encode([e["prompt_redacted"] for e in rows])
+    per_event_ms = round((time.perf_counter() - started) * 1000 / max(len(rows), 1), 1)
+    return {e["event_id"]: v for e, v in zip(rows, vectors)}, per_event_ms
+
+
+def event_labels(model):
+    """Topic + rule-based risk for every classifiable event. Human corrections win."""
+    with LOCK:
+        store = corrections()
+        topic_model = index()["topic"]
+        vectors, _ = event_vectors() if model == "knn" else ({}, 0)
+        labels = {}
+        for event_id, event in classifiable().items():
+            text = event["prompt_redacted"]
+            corrected = store.get(event_id)
+            if corrected:
+                topic, sensitivity, nearest = corrected["topic"], corrected["sensitivity"], 1.0
+            elif model == "knn":
+                explained = topic_model.explain_vector(vectors[event_id])
+                topic, sensitivity, nearest = (
+                    explained["label"],
+                    "public",
+                    explained["nearest_similarity"],
+                )
+            else:
+                topic, sensitivity, nearest = keyword_topic(text), "public", None
+            assessed = risk.assess(text, topic, sensitivity)
+            labels[event_id] = dict(
+                topic=topic,
+                sensitivity=assessed["sensitivity"],
+                severity=assessed["severity"],
+                reason=assessed["reason"],
+                textRedacted=assessed["textRedacted"],
+                nearest=nearest,
+                corrected=bool(corrected),
+            )
+        return labels
+
+
+@app.get("/report/weekly")
+def weekly_report(
+    week: str | None = Query(None, pattern=r"^\d{4}-W\d{2}$"),
+    team: str | None = Query(None, max_length=128),
+    topic: str | None = None,
+    model: str = "knn",
+):
+    if topic is not None and topic not in TOPICS:
+        raise HTTPException(422, "unknown topic")
+    if model == "llm":
+        raise HTTPException(501, "LLM labels are not available yet")
+    if model not in {"knn", "keyword"}:
+        raise HTTPException(422, "model must be knn, keyword or llm")
+    labels = event_labels(model)
+    try:
+        return report.weekly_report(
+            events(), lambda e: labels[e["event_id"]], week=week, team=team or None, topic=topic
+        )
+    except ValueError as error:
+        raise HTTPException(422, str(error)) from None
+    except LookupError as error:
+        raise HTTPException(404, str(error)) from None
+
+
+# ---------- review queue and human feedback ----------
+
+LOCK = threading.RLock()
+CORRECTIONS = Path(os.environ.get("PI_CORRECTIONS", "artifacts/corrections.json"))
+REVIEW_LIMIT = 50
+UNDO = {}
+
+
+@lru_cache(maxsize=1)
+def corrections():
+    """event_id -> {topic, sensitivity}. The file holds labels only, never prompt text."""
+    store = json.loads(CORRECTIONS.read_text()) if CORRECTIONS.exists() else {}
+    known = classifiable()
+    store = {k: v for k, v in store.items() if k in known}
+    for event_id, label in store.items():
+        _teach(event_id, label)
+    return store
+
+
+def _teach(event_id, label):
+    text = classifiable()[event_id]["prompt_redacted"]
+    row_id = f"feedback-{event_id}"
+    index()["topic"].add(row_id, label["topic"], text)
+    index()["rows"][row_id] = dict(
+        id=row_id, text=text, topic=label["topic"], sensitivity=label["sensitivity"]
+    )
+
+
+def _forget(event_id):
+    row_id = f"feedback-{event_id}"
+    index()["topic"].remove(row_id)
+    index()["rows"].pop(row_id, None)
+
+
+def _save(store):
+    CORRECTIONS.parent.mkdir(parents=True, exist_ok=True)
+    CORRECTIONS.write_text(json.dumps(store, indent=2, sort_keys=True) + "\n")
+
+
+def _prediction(label, latency_ms):
+    return dict(
+        model="knn",
+        topic=label["topic"],
+        sensitivity=label["sensitivity"],
+        severity=label["severity"],
+        latencyMs=latency_ms,
+        costUsd=None,
+        inputTokens=None,
+        outputTokens=None,
+        modelVersion=MODEL_VERSION,
+    )
+
+
+@app.get("/review")
+def review_queue():
+    """Flagged high/critical items first, then uncertain ones (least similar on top).
+
+    Repeats of the same prompt appear once, and a prompt drops out once any copy is corrected:
+    the correction joins the index, so its repeats are relabelled too.
+    """
+    labels = event_labels("knn")
+    _, latency_ms = event_vectors()
+    texts = {event_id: event["prompt_redacted"] for event_id, event in classifiable().items()}
+    done = {texts[event_id] for event_id, label in labels.items() if label["corrected"]}
+    queue, seen = [], set()
+    for event_id, label in sorted(labels.items(), key=lambda item: item[0]):
+        if texts[event_id] in done or texts[event_id] in seen:
+            continue
+        if label["severity"] in {"high", "critical"}:
+            reason, rank = "flagged", (0, -SEVERITY_RANK[label["severity"]])
+        elif label["nearest"] < LOW_SIMILARITY:
+            reason, rank = "low_similarity", (1, label["nearest"])
+        else:
+            continue
+        seen.add(texts[event_id])
+        queue.append((rank, event_id, label, reason))
+    queue.sort(key=lambda item: item[:2])
+    return [
+        dict(
+            id=event_id,
+            textRedacted=label["textRedacted"],
+            knn=_prediction(label, latency_ms),
+            llm=None,
+            reason=reason,
+        )
+        for _, event_id, label, reason in queue[:REVIEW_LIMIT]
+    ]
+
+
+class Correction(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    itemId: str = Field(min_length=1, max_length=128)
+    topic: Literal[TOPICS_TUPLE]
+    sensitivity: Literal["public", "internal", "confidential"]
+
+
+class Undo(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    undoToken: str = Field(min_length=1, max_length=64)
+
+
+@app.post("/feedback")
+def feedback(correction: Correction):
+    with LOCK:
+        store = corrections()
+        if correction.itemId not in classifiable():
+            raise HTTPException(404, "unknown review item")
+        previous = store.get(correction.itemId)
+        label = dict(topic=correction.topic, sensitivity=correction.sensitivity)
+        store[correction.itemId] = label
+        _teach(correction.itemId, label)
+        _save(store)
+        token = uuid.uuid4().hex
+        UNDO[token] = (correction.itemId, previous)
+        return dict(
+            ok=True,
+            indexSize=len(index()["topic"].ids),
+            correctionsTotal=len(store),
+            undoToken=token,
+        )
+
+
+@app.post("/feedback/undo")
+def undo_feedback(request: Undo):
+    with LOCK:
+        if request.undoToken not in UNDO:
+            raise HTTPException(404, "unknown or already used undo token")
+        event_id, previous = UNDO.pop(request.undoToken)
+        store = corrections()
+        if previous:
+            store[event_id] = previous
+            _teach(event_id, previous)
+        else:
+            store.pop(event_id, None)
+            _forget(event_id)
+        _save(store)
+        return dict(ok=True, indexSize=len(index()["topic"].ids), correctionsTotal=len(store))

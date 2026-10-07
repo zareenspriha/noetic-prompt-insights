@@ -21,3 +21,4 @@ demo-output/
 .coverage
 htmlcov/
 coverage.xml
+data/external/
