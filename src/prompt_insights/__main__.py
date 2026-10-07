@@ -1,7 +1,7 @@
 import argparse
 import json
 from pathlib import Path
-from .core import generate, evaluate, aggregate
+from .core import MIN_DISTINCT_USERS, MIN_GROUP_SIZE, WINDOWS, aggregate, evaluate, generate
 
 
 def main(argv=None):
@@ -13,6 +13,11 @@ def main(argv=None):
     imp.add_argument("--input", type=Path)
     imp.add_argument("--url", default="http://127.0.0.1:8000")
     imp.add_argument("--out", type=Path, default=Path("artifacts/gateway-summary.json"))
+    imp.add_argument("--window", choices=WINDOWS, default="week")
+    imp.add_argument("--min-group-size", type=int, default=MIN_GROUP_SIZE)
+    imp.add_argument("--min-distinct-users", type=int, default=MIN_DISTINCT_USERS)
+    synth = commands.add_parser("synth-gateway")
+    synth.add_argument("--out", type=Path, default=Path("artifacts/gateway-synthetic.ndjson"))
     args = parser.parse_args(argv)
     if args.command == "demo":
         args.out.mkdir(parents=True, exist_ok=True)
@@ -21,6 +26,13 @@ def main(argv=None):
         (args.out / "evaluation.json").write_text(json.dumps(evaluate(rows), indent=2) + "\n")
         (args.out / "topic-counts.json").write_text(json.dumps(aggregate(rows), indent=2) + "\n")
         print("Generated 280 synthetic prompts and a family-disjoint baseline evaluation.")
+    elif args.command == "synth-gateway":
+        from .gateway import synthetic_events
+
+        events = synthetic_events()
+        args.out.parent.mkdir(parents=True, exist_ok=True)
+        args.out.write_text("".join(json.dumps(event) + "\n" for event in events))
+        print(f"Wrote {len(events)} synthetic gateway events.")
     else:
         from .gateway import parse_ndjson, fetch_gateway, summarize_gateway, MAX_BYTES
 
@@ -30,7 +42,12 @@ def main(argv=None):
                     events = parse_ndjson(stream.read(MAX_BYTES + 1))
             else:
                 events = fetch_gateway(args.url)
-            result = summarize_gateway(events)
+            result = summarize_gateway(
+                events,
+                window=args.window,
+                min_group_size=args.min_group_size,
+                min_distinct_users=args.min_distinct_users,
+            )
         except (ValueError, OSError):
             parser.exit(
                 2, "Gateway import failed: check contract, authentication, and input size.\n"

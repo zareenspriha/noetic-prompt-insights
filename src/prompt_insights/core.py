@@ -1,6 +1,7 @@
 """Transparent prompt-topic baseline and independently grouped synthetic evaluation."""
 
-from collections import Counter
+from collections import Counter, defaultdict
+from datetime import datetime, timezone
 import re
 from sklearn.metrics import classification_report, confusion_matrix
 
@@ -136,6 +137,103 @@ def classify_sensitivity(text):
 
 def aggregate(rows):
     return dict(Counter(classify(row["text"]) for row in rows))
+
+
+# Small-cell suppression: a count is published only when it covers enough events AND enough
+# distinct people. Ten prompts from one person still describe that person.
+MIN_GROUP_SIZE = 10
+MIN_DISTINCT_USERS = 3
+WINDOWS = ("day", "week", "month")
+TIMESTAMP = re.compile(r"\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(\.\d{1,9})?Z")
+
+
+def parse_timestamp(value):
+    """Strict RFC 3339 UTC ('Z') timestamp; rejects impossible dates such as month 13."""
+    if not isinstance(value, str) or not TIMESTAMP.fullmatch(value):
+        raise ValueError("Timestamp must be RFC 3339 UTC ending in Z")
+    seconds, _, fraction = value[:-1].partition(".")
+    try:
+        moment = datetime.strptime(seconds, "%Y-%m-%dT%H:%M:%S")
+    except ValueError:
+        raise ValueError("Timestamp is not a real calendar time") from None
+    return moment.replace(tzinfo=timezone.utc)
+
+
+def window_key(timestamp, window="week"):
+    """UTC calendar bucket: '2026-10-07', ISO week '2026-W41', or '2026-10'."""
+    if window not in WINDOWS:
+        raise ValueError("Window must be one of day, week, month")
+    moment = parse_timestamp(timestamp)
+    if window == "day":
+        return moment.date().isoformat()
+    if window == "month":
+        return f"{moment.year:04d}-{moment.month:02d}"
+    year, week, _ = moment.isocalendar()
+    return f"{year:04d}-W{week:02d}"
+
+
+def _check_thresholds(min_group_size, min_distinct_users):
+    for value in (min_group_size, min_distinct_users):
+        if not isinstance(value, int) or isinstance(value, bool) or value < 1:
+            raise ValueError("Group-size thresholds must be positive integers")
+
+
+def suppress_counts(
+    records, field, min_group_size=MIN_GROUP_SIZE, min_distinct_users=MIN_DISTINCT_USERS
+):
+    """Count records by `field`; small cells become None.
+
+    If exactly one cell is hidden, the next-smallest is hidden too, so a published total
+    cannot recover it by subtraction. If the whole table is below the threshold, no labels
+    are published at all (label presence alone would leak).
+    """
+    _check_thresholds(min_group_size, min_distinct_users)
+    counts = Counter(r[field] for r in records)
+    users = defaultdict(set)
+    for r in records:
+        users[r[field]].add(r["user_id"])
+    everyone = set().union(*users.values()) if users else set()
+    if len(records) < min_group_size or len(everyone) < min_distinct_users:
+        return {}
+    shown = {
+        label: n if n >= min_group_size and len(users[label]) >= min_distinct_users else None
+        for label, n in sorted(counts.items())
+    }
+    hidden = [label for label, n in shown.items() if n is None]
+    visible = sorted((n, label) for label, n in shown.items() if n is not None)
+    if len(hidden) == 1 and visible:
+        shown[visible[0][1]] = None
+    return shown
+
+
+def windowed_aggregate(
+    records,
+    fields,
+    window="week",
+    group_by=None,
+    min_group_size=MIN_GROUP_SIZE,
+    min_distinct_users=MIN_DISTINCT_USERS,
+):
+    """Per time window (and optional group such as team_id) suppressed counts for each field.
+
+    Records need `timestamp` and `user_id`; neither user ids nor text appear in the output.
+    """
+    _check_thresholds(min_group_size, min_distinct_users)
+    buckets = defaultdict(list)
+    for r in records:
+        buckets[(window_key(r["timestamp"], window), r[group_by] if group_by else "")].append(r)
+    result = []
+    for (key, group), part in sorted(buckets.items()):
+        people = len({r["user_id"] for r in part})
+        large = len(part) >= min_group_size and people >= min_distinct_users
+        entry = dict(window=key)
+        if group_by:
+            entry[group_by] = group
+        entry["total"] = len(part) if large else None
+        for field in fields:
+            entry[field] = suppress_counts(part, field, min_group_size, min_distinct_users)
+        result.append(entry)
+    return result
 
 
 def evaluate(rows):

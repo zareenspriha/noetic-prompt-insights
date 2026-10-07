@@ -1,6 +1,6 @@
 # Backend design — Prompt Insights
 
-Status: **draft for team review** (Nikhil, Spriha — backend; Sanjana — frontend).
+Status: **draft for team review** (backend: Person A, Person B = Nikhil; frontend: Sanjana).
 The frontend contract is `web/types/api.ts` on branch `setup/nextjs-frontend`. This backend
 serves exactly that contract; if a shape must change, change `api.ts` first in its own small PR.
 
@@ -100,7 +100,7 @@ CORS: allow `http://localhost:3000` and `http://127.0.0.1:3000` only.
   `data/benchmark.meta.json`, and add a test that fails if the file changes.
   Claude can draft rows, but **a human on the team must read and edit every row** before freezing.
   The README asks for human-written prompts, so be honest about it in the pitch.
-- **Weekly-report events: a deterministic synthetic generator** (`synth_events.py`) producing
+- **Weekly-report events: a deterministic synthetic generator** (`gateway.synthetic_events`, CLI `synth-gateway`) producing
   gateway-contract events (`synthetic=true`, `prompt_redacted` set) over about 6 ISO weeks for
   5 teams (`engineering, sales, support, legal-ops, people`), with some failed/blocked events.
   Each event is validated through the existing `parse_ndjson`, so the contract stays the
@@ -114,27 +114,42 @@ measured tokens × configured price; local: `null`). We also report kNN-vs-LLM a
 and Cohen's κ, plus a breakdown by benchmark `kind`, so injection and implicit-secret failures
 are visible.
 
-## 6. Proposed split (to avoid merge conflicts: separate files, shared contract)
+## 6. Ownership
 
-| Nikhil — "models" | Spriha — "API & data" |
+| Person A — models & evaluation | Person B (Nikhil) — data, gateway & aggregates |
 |---|---|
-| `risk.py` regex spans, redaction, severity | `api.py` Starlette app, CORS, routes, pydantic schemas mirroring `api.ts` |
-| `models.py` TF-IDF kNN + logistic, feedback append | `synth_events.py` multi-week team events |
-| `bench.py` benchmark freeze + evaluation → `Metrics` | `report.py` weekly aggregates, suppression, flags |
-| LLM usage/cost extension in `transport.py` | `store.py` review queue, feedback persistence, undo; `/sources` |
-| tests for the above | tests for the above |
+| Tasks 1–3: TF-IDF/kNN baseline, frozen benchmark, sensitivity beyond explicit markers | Task 4: time windows + minimum group sizes in aggregates |
+| `core.py` classifiers, evaluation, `risk.py`, `models.py`, `bench.py` | `gateway.py`, aggregate code in `core.py`, `providers.py`, `transport.py` |
+| | Consent, retention & deletion requirements: `docs/DATA_GOVERNANCE.md` |
+| | Gateway importer keeps rejecting bad input and stays text-free (tests) |
+| | Task 5 (optional): live provider on Person A's frozen benchmark; record model, version, latency, tokens, cost |
 
-Interface between the halves (agree on these first, then build in parallel):
+API server / routes for the frontend: **owner not yet assigned**. Sections 2–3 still describe the
+target shape, but nobody should build them until someone owns them.
 
-```python
-# risk.py
-scan(text) -> list[RiskSpan]; redact(text) -> (text_redacted, spans); severity(topic, sensitivity, spans) -> str
-# models.py
-class KnnModel: predict(text_redacted) -> Prediction & {neighbors}; add(id, text_redacted, topic, sensitivity); remove(id)
-classify_all(text, allow_llm) -> ClassifyResponse dict   # what POST /classify returns
-# bench.py
-metrics() -> Metrics dict                                 # what GET /metrics returns
-```
+### Person B plan
+
+1. **Fix malformed timestamps.** `format: date-time` is only enforced by `jsonschema` when the
+   optional `rfc3339-validator` package is installed, and it isn't pinned. So
+   `2026-13-45T00:00:00Z` currently passes the contract. `parse_ndjson` will parse every timestamp
+   explicitly, with no new dependency.
+2. **Time windows.** `core.window_key(timestamp, "day"|"week"|"month")` uses ISO weeks
+   (`2026-W41`), UTC, matching `TrendPoint.week`.
+3. **Minimum group sizes.** A cell is published only if it has ≥ `MIN_GROUP_SIZE` (10) events
+   **and** ≥ `MIN_DISTINCT_USERS` (3) distinct users; otherwise it's `null`, as in `api.ts`.
+   Ten prompts from one person still identify that person, which is why there's a second
+   threshold. If exactly one cell in a table is hidden, the next-smallest is hidden too
+   (secondary suppression), so a published total can't recover it by subtraction. A group
+   whose own total is below the threshold publishes no per-label keys at all.
+4. **`summarize_gateway`** keeps its existing fields. Per-label counts are now suppressed, and
+   it adds `windows` (topics/sensitivities per window) and `team_windows` (topics per team per
+   window; this feeds the heatmap). It still contains no prompt text, user ids or event ids.
+   The CLI gains `--window`, `--min-group-size` and `--min-distinct-users`.
+5. **A deterministic synthetic multi-week, multi-team gateway export** (`synth-gateway` CLI),
+   so windows and suppression can be demoed. Every event passes the real contract.
+6. **Tests** for all of the above, plus canary tests that no text or identifiers leak.
+7. **Task 5 is blocked on Person A's frozen benchmark.** It needs `transport.request_json`
+   to also return measured usage. That will be additive, so existing callers are unchanged.
 
 ## 7. Out of scope / honest limits
 
