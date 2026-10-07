@@ -1,20 +1,9 @@
 import json
 from pathlib import Path
-import pytest
-from fastapi.testclient import TestClient
-from prompt_insights import api, embed
-from test_model import fake_encode
+from prompt_insights import api
 
 # Copy of web/mocks/classify.json: the frontend's agreed response shape.
 CONTRACT = json.loads((Path(__file__).parent / "fixtures/classify-contract.json").read_text())
-
-
-@pytest.fixture
-def client(monkeypatch):
-    monkeypatch.setattr(embed, "encode", fake_encode)
-    api.index.cache_clear()
-    yield TestClient(api.app)
-    api.index.cache_clear()
 
 
 def keys(value):

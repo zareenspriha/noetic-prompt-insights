@@ -1,11 +1,8 @@
 import json
 from pathlib import Path
 import pytest
-from fastapi.testclient import TestClient
-from prompt_insights import api, embed
 from prompt_insights.gateway import parse_ndjson
 from prompt_insights.report import MIN_GROUP_SIZE, iso_week, shift_week, weekly_report
-from test_model import fake_encode
 
 ROOT = Path(__file__).parents[1]
 
@@ -76,16 +73,6 @@ def test_first_week_has_no_previous_values_and_filters_apply():
 def test_demo_events_satisfy_the_gateway_contract():
     events = parse_ndjson((ROOT / "data/demo-events.ndjson").read_bytes())
     assert len(events) <= 1000 and all(e["synthetic"] for e in events)
-
-
-@pytest.fixture
-def client(monkeypatch):
-    monkeypatch.setattr(embed, "encode", fake_encode)
-    for cached in (api.index, api.events, api.event_labels):
-        cached.cache_clear()
-    yield TestClient(api.app)
-    for cached in (api.index, api.events, api.event_labels):
-        cached.cache_clear()
 
 
 def test_report_endpoint_matches_frontend_mock(client):

@@ -72,6 +72,23 @@ class NearestNeighbors:
         """Labels for many texts with one encoder pass."""
         return [self._explain(vector)["label"] for vector in self.encode(list(texts))]
 
+    def explain_vector(self, vector):
+        """Like explain(), for a text already encoded with this model's encoder."""
+        return self._explain(vector)
+
+    def add(self, row_id, label, text):
+        """Append one labelled example; later predictions vote over it immediately."""
+        self.remove(row_id)
+        self.vectors = np.vstack([self.vectors, self.encode([text])])
+        self.ids.append(row_id)
+        self.labels.append(label)
+
+    def remove(self, row_id):
+        if row_id in self.ids:
+            i = self.ids.index(row_id)
+            self.vectors = np.delete(self.vectors, i, axis=0)
+            del self.ids[i], self.labels[i]
+
     def _explain(self, vector):
         similarities = self.vectors @ vector
         label, top = _vote(similarities, self.labels, self.k)
