@@ -28,7 +28,8 @@ export default function WeeklyReportPage() {
     () =>
       data
         ? [...new Set(data.trend.map((p) => p.week))].map((w) =>
-            data.trend.filter((p) => p.week === w).reduce((s, p) => s + p.count, 0),
+            // Suppressed (null) cells are left out, so this is a lower bound.
+            data.trend.filter((p) => p.week === w).reduce((s, p) => s + (p.count ?? 0), 0),
           )
         : [],
     [data],

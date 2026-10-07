@@ -75,7 +75,7 @@ export interface TeamTopicCell {
 export interface TrendPoint {
   week: string;             // ISO week, e.g. "2026-W40"
   topic: Topic;
-  count: number;
+  count: number | null;     // null = suppressed, same rule as the heatmap
 }
 export interface Flag {
   eventId: string;

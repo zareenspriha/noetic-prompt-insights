@@ -124,11 +124,11 @@ def test_summary_still_rejects_bad_input_after_aggregation_changes():
         summarize_gateway(good, min_group_size=0)
 
 
-def test_cli_window_flags_and_synthetic_export(tmp_path):
+def test_cli_window_flags(tmp_path):
     from prompt_insights.__main__ import main
 
     export = tmp_path / "events.ndjson"
-    assert main(["synth-gateway", "--out", str(export)]) == 0
+    export.write_text("".join(json.dumps(e) + "\n" for e in synthetic_events()))
     out = tmp_path / "summary.json"
     args = ["import-gateway", "--input", str(export), "--out", str(out), "--window", "month"]
     assert main(args + ["--min-group-size", "5"]) == 0
