@@ -1,0 +1,13 @@
+{
+  "received": 1240,
+  "deduped": 18,
+  "failed": 21,
+  "blocked": 9,
+  "classified": 1192,
+  "gateway": {
+    "connected": false,
+    "url": null,
+    "lastImportAt": "2026-10-07T20:00:00Z"
+  },
+  "project1DashboardUrl": null
+}
