@@ -20,7 +20,7 @@ import metricsMock from "@/mocks/metrics.json";
 import sourcesMock from "@/mocks/sources.json";
 
 /** FastAPI base URL. Set NEXT_PUBLIC_API_URL in web/.env.local (default: local uvicorn). */
-const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://127.0.0.1:8000";
+const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://127.0.0.1:8001";
 
 async function http<T>(path: string, init?: RequestInit): Promise<T> {
   const res = await fetch(`${API_URL}${path}`, {
