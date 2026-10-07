@@ -1,6 +1,6 @@
 # Consent, retention and deletion requirements
 
-Status: **requirements, not yet satisfied.** Everything in this repository today is synthetic.
+Status: **requirements, not yet satisfied.** Everything in this repository today is synthetic or public (Dolly) text, never real employee prompts.
 These are the conditions that must hold **before** any real prompt, or real prompt metadata, is
 imported. The retention periods are team proposals, not legal advice. Anyone deploying this for
 real must confirm them with their privacy/legal function and, where it applies, employee
@@ -100,7 +100,7 @@ Known gaps, stated honestly:
 | Role | Sees |
 |---|---|
 | Employees (data subjects) | The notice, their consent record, their deletion status |
-| Report viewers | Suppressed aggregates only |
+| Report viewers | Suppressed aggregates, plus the **flags** list: individual redacted prompts with team and timestamp, never `user_id`. Flags are event-level by design; with small teams, a team plus a timestamp can still point to a person, so access to flags should be narrower than access to aggregates. |
 | Operators | Gateway token (env var), import logs without content |
 | Nobody through this project | Raw prompts, per-person reports |
 

@@ -144,10 +144,11 @@ TEAMS = {
 
 
 def synthetic_events(weeks=6, per_week=150, start="2026-08-31T09:00:00Z"):
-    """Deterministic multi-week, multi-team export built from the synthetic corpus.
+    """Deterministic multi-week, multi-team export for testing windows and suppression.
 
     Teams mostly ask about their own topics, so some cells clear the thresholds and many
-    do not, which is the point of the demo. Every event passes the shared contract.
+    do not. Every event passes the shared contract. The app demo uses
+    data/demo-events.ndjson instead (Dolly text with planted fake secrets).
     """
     if weeks * per_week > 1000:
         raise ValueError("Gateway record limit exceeded")
