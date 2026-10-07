@@ -10,7 +10,8 @@ export function TrendChart({ data, topic }: { data: TrendPoint[]; topic?: Topic 
   const weeks = [...new Set(data.map((d) => d.week))];
   const rows = weeks.map((week) => {
     const row: Record<string, string | number> = { week: week.replace(/^\d{4}-/, "") };
-    for (const p of data) if (p.week === week) row[p.topic] = p.count;
+    // Suppressed (null) points are left out so the chart shows a gap, not a fake zero.
+    for (const p of data) if (p.week === week && p.count !== null) row[p.topic] = p.count;
     return row;
   });
 
