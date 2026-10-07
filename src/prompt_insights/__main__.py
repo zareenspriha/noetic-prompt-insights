@@ -21,6 +21,12 @@ def main(argv=None):
     imp.add_argument("--window", choices=WINDOWS, default="week")
     imp.add_argument("--min-group-size", type=int, default=MIN_GROUP_SIZE)
     imp.add_argument("--min-distinct-users", type=int, default=MIN_DISTINCT_USERS)
+    live = commands.add_parser("eval-provider", help="Task 5: one paid call per frozen row")
+    live.add_argument("--input", type=Path, required=True)
+    live.add_argument("--split", help="only rows whose split field equals this, e.g. test")
+    live.add_argument("--mode", choices=["openai", "anthropic"], required=True)
+    live.add_argument("--yes", action="store_true", help="authorize one paid request per row")
+    live.add_argument("--out", type=Path, default=Path("artifacts/provider-eval.json"))
     args = parser.parse_args(argv)
     if args.command == "demo":
         args.out.mkdir(parents=True, exist_ok=True)
@@ -39,6 +45,31 @@ def main(argv=None):
         args.out.parent.mkdir(parents=True, exist_ok=True)
         args.out.write_text(json.dumps(compare(generate()), indent=2) + "\n")
         print(f"Compared keyword, TF-IDF and k-NN models; wrote {args.out}.")
+    elif args.command == "eval-provider":
+        from .providers import dataset_fingerprint, evaluate_provider
+
+        try:
+            data = args.input.read_bytes()
+            meta_path = args.input.with_name(args.input.stem + ".meta.json")
+            meta = json.loads(meta_path.read_text()) if meta_path.exists() else None
+            rows = [json.loads(line) for line in data.splitlines() if line.strip()]
+            rows = [r for r in rows if args.split is None or r.get("split") == args.split]
+            if not rows:
+                raise ValueError("No rows selected")
+            result = dict(
+                dataset=dict(
+                    path=str(args.input),
+                    sha256=dataset_fingerprint(data, meta),
+                    frozen=meta is not None,
+                    split=args.split,
+                ),
+                **evaluate_provider(rows, args.mode, allow_live=args.yes),
+            )
+        except (ValueError, OSError) as error:
+            parser.exit(2, f"Provider evaluation failed: {error}\n")
+        args.out.parent.mkdir(parents=True, exist_ok=True)
+        args.out.write_text(json.dumps(result, indent=2) + "\n")
+        print(f"Classified {result['answered']}/{result['rows']} rows; wrote {args.out}.")
     else:
         from .gateway import parse_ndjson, fetch_gateway, summarize_gateway, MAX_BYTES
 
