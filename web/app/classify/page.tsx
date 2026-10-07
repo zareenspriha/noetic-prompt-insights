@@ -122,7 +122,11 @@ export default function ClassifyPage() {
                 </p>
                 <p className="text-muted-foreground">
                   Only the redacted text is sent.
-                  {result ? ` Estimated cost ≈ $${result.llmCostEstimateUsd.toFixed(4)} per prompt.` : ""}
+                  {result
+                    ? result.llmCostEstimateUsd === null
+                      ? " Cost unknown: no price is configured on the server."
+                      : ` Estimated cost ≈ $${result.llmCostEstimateUsd.toFixed(4)} per prompt.`
+                    : ""}
                 </p>
               </div>
             </div>

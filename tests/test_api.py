@@ -32,11 +32,12 @@ def test_classify_masks_secrets_everywhere_and_raises_severity(client):
     assert body["riskSpans"][0]["kind"] == "api_key"
 
 
-def test_classify_rejects_bad_input_and_unwired_llm(client):
+def test_classify_rejects_bad_input_and_unconfigured_llm(client):
     assert client.post("/classify", json={"text": "", "allowLlm": False}).status_code == 422
     assert client.post("/classify", json={"text": "x" * 16001}).status_code == 422
     assert client.post("/classify", json={"text": "hi", "extra": 1}).status_code == 422
-    assert client.post("/classify", json={"text": "hi", "allowLlm": True}).status_code == 501
+    # The client fixture clears provider settings, so an approved LLM call has nowhere to go.
+    assert client.post("/classify", json={"text": "hi", "allowLlm": True}).status_code == 503
 
 
 def test_cors_allows_the_next_dev_server(client):

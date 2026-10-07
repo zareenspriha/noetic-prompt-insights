@@ -200,3 +200,51 @@ def dataset_fingerprint(data, meta=None):
     if meta is not None and meta.get("sha256") != digest:
         raise ValueError("Frozen test set changed: sha256 does not match its meta file")
     return digest
+
+
+def configured_provider():
+    """The server's LLM: PI_LLM_PROVIDER if set, else whichever provider has a key and model."""
+    chosen = os.environ.get("PI_LLM_PROVIDER", "")
+    candidates = [chosen] if chosen else ["anthropic", "openai"]
+    for mode in candidates:
+        if mode in LIVE_MODES and all(
+            os.environ.get(f"{mode.upper()}_{name}") for name in ("API_KEY", "MODEL")
+        ):
+            return mode
+    return None
+
+
+def label_events(events, mode, allow_live=False, transport=None, max_failures=5):
+    """Batch LLM labels for gateway events, one paid call per *distinct* text.
+
+    Returns {event_id: {topic, sensitivity}} plus usage. No prompt text is kept in the result.
+    Stops after `max_failures` consecutive failures; there are no retries.
+    """
+    require_live(mode, allow_live)
+    eligible = [e for e in events if e["status"] == "succeeded" and e.get("prompt_redacted")]
+    answers, streak = {}, 0
+    for text in dict.fromkeys(e["prompt_redacted"] for e in eligible):
+        try:
+            answers[text] = llm_prediction(text, mode, allow_live, transport)
+            streak = 0
+        except ValueError:
+            streak += 1
+            if streak >= max_failures:
+                raise ValueError(f"Stopped after {streak} consecutive provider failures") from None
+    calls = list(answers.values())
+    costs = [p["costUsd"] for p in calls]
+    return dict(
+        mode=mode,
+        modelVersions=sorted({p["modelVersion"] for p in calls}),
+        calls=len(calls),
+        unanswered=len(dict.fromkeys(e["prompt_redacted"] for e in eligible)) - len(calls),
+        costUsd=round(sum(costs), 6) if costs and None not in costs else None,
+        labels={
+            e["event_id"]: dict(
+                topic=answers[e["prompt_redacted"]]["topic"],
+                sensitivity=answers[e["prompt_redacted"]]["sensitivity"],
+            )
+            for e in eligible
+            if e["prompt_redacted"] in answers
+        },
+    )
