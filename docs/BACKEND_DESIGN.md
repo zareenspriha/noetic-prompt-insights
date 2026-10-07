@@ -79,14 +79,24 @@ Records need `timestamp`, `user_id` and the counted field. Here's what A's curre
 
 ## 5. Person B next work
 
-1. **LLM classifier.** `transport.request_json` additionally returns measured usage (tokens) and
-   latency. Existing callers stay unchanged. `providers.classify_prompt` returns a `Prediction`-shaped
-   result: model version, tokens, cost from `LLM_PRICE_IN_PER_MTOK` / `LLM_PRICE_OUT_PER_MTOK`, or
-   `null` when no price is set. The LLM only ever sees `textRedacted`. Severity stays rule-based.
-   A then replaces the two `501` responses in `api.py` with calls to it.
-2. **Task 5.** A CLI runs the provider once over a frozen set and writes model, version, p50 latency,
-   measured tokens, cost and quality separately. It needs the frozen sets plus a key the user sets
-   in their own shell.
+1. **LLM classifier (done, offline-tested).** `transport.request_structured` returns content plus
+   the provider-reported model, tokens and measured latency. `request_json` is unchanged for
+   existing callers. `providers.llm_prediction(text, mode, allow_live)` returns the `Prediction`
+   shape without `severity`, which the API adds from `risk.assess`. The provider only ever sees
+   `risk.redact` output, and `classify_prompt` now redacts too. Cost is measured tokens times
+   `{OPENAI,ANTHROPIC}_PRICE_{IN,OUT}_PER_MTOK`, or `null` without a price.
+   `providers.estimate_cost_usd(text, mode)` is the labelled pre-call estimate for
+   `llmCostEstimateUsd`, and returns `null` without a price.
+   **Still to wire in `api.py`:** replace the two `501` responses (`/classify` with `allowLlm`, and
+   `/report/weekly?model=llm`).
+2. **Task 5 runner (done, offline-tested).** Run
+   `python -m prompt_insights eval-provider --input data/benchmark.ndjson --mode anthropic --yes`,
+   or with `--input data/dolly-topics.ndjson --split test`. It makes one call per row, with no
+   retries, and stops after 5 consecutive failures. It refuses to run without `--yes`, or if the
+   file no longer matches its `.meta.json` sha256. The report keeps quality (macro-F1,
+   confidential recall/false negatives, accuracy by `kind`) separate from model version, p50
+   latency, provider-reported tokens and cost. **Not run live yet:** that needs a key, a model
+   and prices set in your own shell.
 
 ## 6. Merging
 
