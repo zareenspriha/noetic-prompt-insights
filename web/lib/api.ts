@@ -1,0 +1,109 @@
+"use client";
+
+import { useMutation, useQuery } from "@tanstack/react-query";
+import { useDemoMode } from "@/lib/demo-mode";
+import type {
+  ClassifyRequest,
+  ClassifyResponse,
+  Correction,
+  FeedbackResponse,
+  Metrics,
+  ReviewItem,
+  Sources,
+  WeeklyReport,
+} from "@/types/api";
+
+import weeklyMock from "@/mocks/report-weekly.json";
+import classifyMock from "@/mocks/classify.json";
+import reviewMock from "@/mocks/review.json";
+import metricsMock from "@/mocks/metrics.json";
+import sourcesMock from "@/mocks/sources.json";
+
+/** FastAPI base URL. Set NEXT_PUBLIC_API_URL in web/.env.local (default: local uvicorn). */
+const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://127.0.0.1:8000";
+
+async function http<T>(path: string, init?: RequestInit): Promise<T> {
+  const res = await fetch(`${API_URL}${path}`, {
+    ...init,
+    headers: { "Content-Type": "application/json", ...init?.headers },
+  });
+  if (!res.ok) throw new Error(`${init?.method ?? "GET"} ${path} failed: ${res.status}`);
+  return res.json() as Promise<T>;
+}
+
+/** Fake latency so loading skeletons are visible in demo mode. */
+const mock = <T,>(data: unknown, ms = 300) =>
+  new Promise<T>((resolve) => setTimeout(() => resolve(structuredClone(data) as T), ms));
+
+export type ReportFilters = { week?: string; team?: string; topic?: string; model?: string };
+
+function qs(params: Record<string, string | undefined>) {
+  const s = new URLSearchParams(
+    Object.entries(params).filter((e): e is [string, string] => !!e[1]),
+  ).toString();
+  return s ? `?${s}` : "";
+}
+
+// ---------------- hooks (one per route in types/api.ts) ----------------
+
+export function useWeeklyReport(filters: ReportFilters = {}) {
+  const { demo } = useDemoMode();
+  return useQuery({
+    queryKey: ["report", demo, filters],
+    queryFn: () =>
+      demo ? mock<WeeklyReport>(weeklyMock) : http<WeeklyReport>(`/report/weekly${qs(filters)}`),
+  });
+}
+
+export function useClassify() {
+  const { demo } = useDemoMode();
+  return useMutation({
+    mutationFn: (body: ClassifyRequest) =>
+      demo
+        ? mock<ClassifyResponse>(
+            { ...classifyMock, llm: body.allowLlm ? classifyMock.llm : null, agree: body.allowLlm ? classifyMock.agree : null },
+            600,
+          )
+        : http<ClassifyResponse>("/classify", { method: "POST", body: JSON.stringify(body) }),
+  });
+}
+
+export function useReviewQueue() {
+  const { demo } = useDemoMode();
+  return useQuery({
+    queryKey: ["review", demo],
+    queryFn: () => (demo ? mock<ReviewItem[]>(reviewMock) : http<ReviewItem[]>("/review")),
+  });
+}
+
+let demoCorrections = 0;
+export function useFeedback() {
+  const { demo } = useDemoMode();
+  return useMutation({
+    mutationFn: (c: Correction) =>
+      demo
+        ? mock<FeedbackResponse>({
+            ok: true,
+            indexSize: 210 + ++demoCorrections,
+            correctionsTotal: demoCorrections,
+            undoToken: `demo-${demoCorrections}`,
+          })
+        : http<FeedbackResponse>("/feedback", { method: "POST", body: JSON.stringify(c) }),
+  });
+}
+
+export function useMetrics() {
+  const { demo } = useDemoMode();
+  return useQuery({
+    queryKey: ["metrics", demo],
+    queryFn: () => (demo ? mock<Metrics>(metricsMock) : http<Metrics>("/metrics")),
+  });
+}
+
+export function useSources() {
+  const { demo } = useDemoMode();
+  return useQuery({
+    queryKey: ["sources", demo],
+    queryFn: () => (demo ? mock<Sources>(sourcesMock) : http<Sources>("/sources")),
+  });
+}

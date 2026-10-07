@@ -1,0 +1,72 @@
+{
+  "knn": {
+    "model": "knn",
+    "topic": "coding",
+    "sensitivity": "confidential",
+    "severity": "critical",
+    "latencyMs": 14,
+    "costUsd": null,
+    "inputTokens": null,
+    "outputTokens": null,
+    "modelVersion": "MOCK all-MiniLM-L6-v2 k=5",
+    "neighbors": [
+      {
+        "id": "syn-coding-0",
+        "textRedacted": "Please debug a python parser for a fictional bookshop.",
+        "topic": "coding",
+        "sensitivity": "public",
+        "similarity": 0.71
+      },
+      {
+        "id": "syn-coding-1",
+        "textRedacted": "Fix this request that uses a secret token for the billing API.",
+        "topic": "coding",
+        "sensitivity": "confidential",
+        "similarity": 0.68
+      },
+      {
+        "id": "syn-coding-2",
+        "textRedacted": "Why does my HTTP client time out on retries?",
+        "topic": "coding",
+        "sensitivity": "public",
+        "similarity": 0.64
+      },
+      {
+        "id": "syn-coding-3",
+        "textRedacted": "Review this config that contains a password field.",
+        "topic": "coding",
+        "sensitivity": "confidential",
+        "similarity": 0.61
+      },
+      {
+        "id": "syn-coding-4",
+        "textRedacted": "Summarize these server logs for errors.",
+        "topic": "data_analysis",
+        "sensitivity": "internal",
+        "similarity": 0.52
+      }
+    ]
+  },
+  "llm": {
+    "model": "llm",
+    "topic": "coding",
+    "sensitivity": "confidential",
+    "severity": "critical",
+    "latencyMs": 820,
+    "costUsd": 0.00021,
+    "inputTokens": 142,
+    "outputTokens": 18,
+    "modelVersion": "MOCK llm-zero-shot"
+  },
+  "agree": true,
+  "needsReview": false,
+  "riskSpans": [
+    {
+      "start": 45,
+      "end": 63,
+      "kind": "api_key"
+    }
+  ],
+  "textRedacted": "Why does this fail? client = Client(api_key=\"sk-live-[REDACTED]\") then client.send()",
+  "llmCostEstimateUsd": 0.0002
+}
