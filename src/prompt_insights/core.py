@@ -138,24 +138,24 @@ def aggregate(rows):
     return dict(Counter(classify(row["text"]) for row in rows))
 
 
+def score(part, target, classifier, labels):
+    truth = [row[target] for row in part]
+    predicted = [classifier(row["text"]) for row in part]
+    report = classification_report(
+        truth, predicted, labels=labels, output_dict=True, zero_division=0
+    )
+    return dict(
+        samples=len(part),
+        accuracy=sum(a == b for a, b in zip(truth, predicted)) / len(part) if part else None,
+        per_class={k: report[k] for k in labels},
+        macro_f1=sum(report[k]["f1-score"] for k in labels) / len(labels),
+        confusion_labels=labels,
+        confusion_matrix=confusion_matrix(truth, predicted, labels=labels).tolist(),
+    )
+
+
 def evaluate(rows):
     train, validation = split(rows)
-
-    def score(part, target, classifier, labels):
-        truth = [row[target] for row in part]
-        predicted = [classifier(row["text"]) for row in part]
-        report = classification_report(
-            truth, predicted, labels=labels, output_dict=True, zero_division=0
-        )
-        return dict(
-            samples=len(part),
-            accuracy=sum(a == b for a, b in zip(truth, predicted)) / len(part) if part else None,
-            per_class={k: report[k] for k in labels},
-            macro_f1=sum(report[k]["f1-score"] for k in labels) / len(labels),
-            confusion_labels=labels,
-            confusion_matrix=confusion_matrix(truth, predicted, labels=labels).tolist(),
-        )
-
     return dict(
         train=score(train, "topic", classify, list(TOPICS)),
         validation=score(validation, "topic", classify, list(TOPICS)),

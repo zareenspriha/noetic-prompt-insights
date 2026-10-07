@@ -9,6 +9,11 @@ def main(argv=None):
     commands = parser.add_subparsers(dest="command", required=True)
     demo = commands.add_parser("demo")
     demo.add_argument("--out", type=Path, default=Path("artifacts/demo"))
+    cmp = commands.add_parser("compare")
+    cmp.add_argument("--out", type=Path, default=Path("artifacts/compare.json"))
+    serve = commands.add_parser("serve")
+    serve.add_argument("--host", default="127.0.0.1")
+    serve.add_argument("--port", type=int, default=8000)
     imp = commands.add_parser("import-gateway")
     imp.add_argument("--input", type=Path)
     imp.add_argument("--url", default="http://127.0.0.1:8000")
@@ -21,6 +26,16 @@ def main(argv=None):
         (args.out / "evaluation.json").write_text(json.dumps(evaluate(rows), indent=2) + "\n")
         (args.out / "topic-counts.json").write_text(json.dumps(aggregate(rows), indent=2) + "\n")
         print("Generated 280 synthetic prompts and a family-disjoint baseline evaluation.")
+    elif args.command == "serve":
+        import uvicorn
+
+        uvicorn.run("prompt_insights.api:app", host=args.host, port=args.port)
+    elif args.command == "compare":
+        from .model import compare
+
+        args.out.parent.mkdir(parents=True, exist_ok=True)
+        args.out.write_text(json.dumps(compare(generate()), indent=2) + "\n")
+        print(f"Compared keyword, TF-IDF and k-NN models; wrote {args.out}.")
     else:
         from .gateway import parse_ndjson, fetch_gateway, summarize_gateway, MAX_BYTES
 
