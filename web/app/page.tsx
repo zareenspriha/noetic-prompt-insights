@@ -1,57 +1,86 @@
 "use client";
 
-// OWNER: F1 (feat/weekly-report). KPIs, trend and a flags preview are wired to mocks.
-// TODO: team × topic heatmap, full flags table, filters (date/team/topic/model), PDF/CSV export.
-import { AlertOctagon, Download, Lock, MessageSquareText, Sparkles } from "lucide-react";
+// OWNER: F1 (feat/weekly-report)
+import { useMemo, useState } from "react";
+import { AlertOctagon, FileDown, Lock, MessageSquareText, Printer, Sparkles } from "lucide-react";
 import { useWeeklyReport } from "@/lib/api";
+import { exportReportCsv } from "@/lib/export";
 import { TOPIC_LABEL } from "@/lib/tokens";
-import { SEVERITIES } from "@/types/api";
 import { KpiTile } from "@/components/shared/kpi-tile";
 import { PageHeader } from "@/components/shared/page-header";
 import { Skeleton } from "@/components/shared/skeleton";
 import { EmptyState } from "@/components/shared/empty-state";
 import { ChartCard } from "@/components/shared/chart-card";
-import { SeverityBadge } from "@/components/shared/severity-badge";
 import { TrendChart } from "@/components/report/trend-chart";
+import { TeamTopicHeatmap } from "@/components/report/team-topic-heatmap";
+import { FlagsTable } from "@/components/report/flags-table";
+import { DEFAULT_FILTERS, FilterBar, type Filters } from "@/components/report/filter-bar";
+
+const btn =
+  "no-print inline-flex items-center gap-1.5 rounded-lg border border-white/10 bg-white/5 px-3 py-1.5 text-sm hover:bg-white/10 disabled:cursor-not-allowed disabled:opacity-50";
 
 export default function WeeklyReportPage() {
-  const { data, isLoading, error } = useWeeklyReport();
+  const [filters, setFilters] = useState<Filters>(DEFAULT_FILTERS);
+  // Week + model are server-side filters; team/topic/severity filter the loaded report.
+  const { data, isLoading, error } = useWeeklyReport({ model: filters.model });
 
-  const weeklyTotals = data
-    ? [...new Set(data.trend.map((p) => p.week))].map((w) =>
-        data.trend.filter((p) => p.week === w).reduce((s, p) => s + p.count, 0),
-      )
-    : [];
-  const topFlags = data
-    ? [...data.flags].sort((a, b) => SEVERITIES.indexOf(b.severity) - SEVERITIES.indexOf(a.severity)).slice(0, 5)
-    : [];
+  const weeklyTotals = useMemo(
+    () =>
+      data
+        ? [...new Set(data.trend.map((p) => p.week))].map((w) =>
+            data.trend.filter((p) => p.week === w).reduce((s, p) => s + p.count, 0),
+          )
+        : [],
+    [data],
+  );
+
+  const flags = useMemo(
+    () =>
+      (data?.flags ?? []).filter(
+        (f) =>
+          (!filters.team || f.teamId === filters.team) &&
+          (!filters.topic || f.topic === filters.topic) &&
+          (!filters.severity || f.severity === filters.severity),
+      ),
+    [data, filters],
+  );
+
+  const selectCell = (team: string, topic: (typeof DEFAULT_FILTERS)["topic"]) =>
+    setFilters(
+      filters.team === team && filters.topic === topic
+        ? { ...filters, team: null, topic: null }
+        : { ...filters, team, topic },
+    );
 
   return (
     <div className="mx-auto max-w-7xl">
       <PageHeader
         eyebrow={data ? `Week ${data.week}` : "Weekly report"}
         title="What people used AI for this week"
-        description="Topics and risk across every team, from the AI gateway log. No prompt text leaves the pipeline unredacted."
+        description="Topics and risk across every team, from the AI gateway log. Prompt text is redacted and small groups are hidden."
       >
         {data?.synthetic && (
           <span className="rounded-full border border-sev-medium/30 bg-sev-medium/10 px-2.5 py-1 text-xs text-sev-medium">
             Synthetic data
           </span>
         )}
-        <button
-          type="button"
-          disabled
-          title="Coming soon"
-          className="inline-flex items-center gap-1.5 rounded-lg border border-white/10 bg-white/5 px-3 py-1.5 text-sm text-muted-foreground disabled:cursor-not-allowed"
-        >
-          <Download className="size-4" aria-hidden /> Export
+        <button type="button" className={btn} disabled={!data} onClick={() => data && exportReportCsv(data, flags)}>
+          <FileDown className="size-4" aria-hidden /> CSV
+        </button>
+        <button type="button" className={btn} disabled={!data} onClick={() => window.print()}>
+          <Printer className="size-4" aria-hidden /> PDF
         </button>
       </PageHeader>
 
       {error ? (
-        <EmptyState variant="error" title="Couldn't load the report" message={String(error)} />
+        <EmptyState
+          variant="error"
+          title="Couldn't load the report"
+          message={`${String(error)}. Is the backend running? Turn on Demo mode to use seeded data.`}
+        />
       ) : isLoading || !data ? (
         <div className="grid gap-4">
+          <Skeleton className="h-16" />
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
             {Array.from({ length: 4 }).map((_, i) => (
               <Skeleton key={i} className="h-36" />
@@ -61,6 +90,10 @@ export default function WeeklyReportPage() {
         </div>
       ) : (
         <div className="grid gap-4">
+          <div className="no-print">
+            <FilterBar filters={filters} setFilters={setFilters} teams={data.teams} week={data.week} />
+          </div>
+
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
             <KpiTile
               label="Total prompts"
@@ -94,38 +127,39 @@ export default function WeeklyReportPage() {
             />
           </div>
 
-          <div className="grid gap-4 lg:grid-cols-5">
+          <div className="grid gap-4 xl:grid-cols-5">
             <ChartCard
-              className="lg:col-span-3"
-              title="Weekly trend"
-              description="Prompt volume by topic, last 6 weeks"
+              className="xl:col-span-3"
+              title="Top topics per team"
+              description="Prompts this week. Click a cell to filter."
             >
-              <TrendChart data={data.trend} />
+              <TeamTopicHeatmap
+                cells={data.heatmap}
+                teams={data.teams}
+                minGroupSize={data.minGroupSize}
+                selected={{ team: filters.team, topic: filters.topic }}
+                onSelect={selectCell}
+              />
             </ChartCard>
-
-            <ChartCard className="lg:col-span-2" title="Highest-risk flags" description="Redacted, sorted by severity">
-              <ul className="grid gap-2">
-                {topFlags.map((f) => (
-                  <li key={f.eventId} className="min-w-0 rounded-lg border border-white/5 bg-white/[0.02] p-3">
-                    <div className="mb-1.5 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-muted-foreground">
-                      <SeverityBadge severity={f.severity} />
-                      <span>{f.teamId}</span>
-                      <span aria-hidden>·</span>
-                      <span>{TOPIC_LABEL[f.topic]}</span>
-                      <span className="ml-auto">{f.reason}</span>
-                    </div>
-                    <p className="truncate font-mono text-xs text-foreground/80" title={f.textRedacted}>{f.textRedacted}</p>
-                  </li>
-                ))}
-              </ul>
+            <ChartCard
+              className="xl:col-span-2"
+              title="Weekly trend"
+              description={filters.topic ? `${TOPIC_LABEL[filters.topic]}, last 6 weeks, all teams` : "Prompt volume by topic, last 6 weeks"}
+            >
+              <TrendChart data={data.trend} topic={filters.topic} />
             </ChartCard>
           </div>
 
-          <EmptyState
-            variant="building"
-            title="Team × topic heatmap"
-            message={`Groups under ${data.minGroupSize} prompts will show as "insufficient data".`}
-          />
+          <ChartCard
+            title="Flagged prompts"
+            description={`${flags.length} of ${data.flags.length} flags${filters.team || filters.topic || filters.severity ? " (filtered)" : ""}. Text is redacted; exports leave it out entirely.`}
+          >
+            {flags.length ? (
+              <FlagsTable flags={flags} />
+            ) : (
+              <EmptyState title="No flags match these filters" message="Try another team, topic or severity." />
+            )}
+          </ChartCard>
         </div>
       )}
     </div>
