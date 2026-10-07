@@ -20,8 +20,8 @@ from pydantic import BaseModel, ConfigDict, Field
 
 from pathlib import Path
 
-from . import embed, report, risk
-from .core import TOPICS, classify as keyword_topic, generate, split
+from . import bench, embed, report, risk
+from .core import TOPICS, classify as keyword_topic, classify_sensitivity, generate, split
 from .gateway import MAX_BYTES, parse_ndjson
 from .model import load_dolly
 
@@ -356,3 +356,27 @@ def undo_feedback(request: Undo):
             _forget(event_id)
         _save(store)
         return dict(ok=True, indexSize=len(index()["topic"].ids), correctionsTotal=len(store))
+
+
+# ---------- model comparison ----------
+
+
+@lru_cache(maxsize=1)
+def metrics():
+    """Scores on the frozen benchmark, computed once per process (it does not change)."""
+
+    def keyword(text):
+        return keyword_topic(text), classify_sensitivity(text)
+
+    def knn(text):
+        topic = index()["topic"].explain(text)["label"]
+        return topic, risk.assess(text, topic, "public")["sensitivity"]
+
+    return bench.benchmark_metrics(
+        [("keyword", "keyword baseline + policy markers", keyword), ("knn", MODEL_VERSION, knn)]
+    )
+
+
+@app.get("/metrics")
+def get_metrics():
+    return metrics()

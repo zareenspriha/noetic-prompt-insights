@@ -1,0 +1,11 @@
+{
+  "size": 70,
+  "sha256": "21af7032648fe275e0de3ddcd9d394dde470a404724bb67c6362360f74488783",
+  "frozenAt": "2026-10-07",
+  "provenance": "Synthetic prompts, not collected from real users. All secrets, names and numbers are fake.",
+  "labelRules": {
+    "mixed_topic": "prompts spanning two or more topics are labelled other, per the README taxonomy",
+    "internal": "non-secret company information such as internal metrics, meeting notes, planning",
+    "confidential": "credentials, personal data about named people, unreleased financials, active legal matters"
+  }
+}
