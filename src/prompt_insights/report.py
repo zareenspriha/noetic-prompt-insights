@@ -2,16 +2,17 @@
 web/types/api.ts.
 
 Only succeeded events with prompt text are counted; failed/blocked events are never classified.
-Team x topic cells under MIN_GROUP_SIZE are returned as null so small groups cannot be singled out.
+Team x topic cells use core.suppress_counts: a cell is shown only with at least MIN_GROUP_SIZE
+prompts from at least MIN_DISTINCT_USERS people, a lone hidden cell takes the next-smallest with
+it, and a team below the thresholds shows no cells at all. Otherwise it is null.
 """
 
 import re
 from collections import Counter
 from datetime import datetime, timedelta
 
-from .core import TOPICS
+from .core import MIN_GROUP_SIZE, TOPICS, suppress_counts
 
-MIN_GROUP_SIZE = 10
 TREND_WEEKS = 6
 SEVERITY_ORDER = ("low", "medium", "high", "critical")
 WEEK = re.compile(r"^(\d{4})-W(\d{2})$")
@@ -68,7 +69,17 @@ def weekly_report(events, label, week=None, team=None, topic=None):
 
     shown_topics = [topic] if topic else list(TOPICS)
     shown_teams = [team] if team else teams
-    cells = Counter((i["event"]["team_id"], i["topic"]) for i in current)
+    per_team = {
+        t: suppress_counts(
+            [
+                dict(topic=i["topic"], user_id=i["event"]["user_id"])
+                for i in current
+                if i["event"]["team_id"] == t
+            ],
+            "topic",
+        )
+        for t in shown_teams
+    }
     weeks = [shift_week(week, n) for n in range(1 - TREND_WEEKS, 1)]
     trend = Counter((i["week"], i["topic"]) for i in items)
     flags = sorted(
@@ -95,7 +106,8 @@ def weekly_report(events, label, week=None, team=None, topic=None):
             dict(
                 teamId=t,
                 topic=topic_id,
-                count=cells[t, topic_id] if cells[t, topic_id] >= MIN_GROUP_SIZE else None,
+                # Absent topics in a published team are true zeros; a hidden team is all null.
+                count=per_team[t].get(topic_id, 0) if per_team[t] else None,
             )
             for t in shown_teams
             for topic_id in shown_topics

@@ -1,6 +1,6 @@
 """HTTP API for the Next.js frontend. Response shapes follow web/types/api.ts exactly.
 
-    python -m prompt_insights serve --port 8000
+    python -m prompt_insights serve  # http://127.0.0.1:8001; port 8000 is the AI Gateway
 
 Prompt text is classified in memory and never logged or stored by this module.
 """

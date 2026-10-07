@@ -10,6 +10,7 @@ ROOT = Path(__file__).parents[1]
 def event(n, timestamp, team="eng", text="Debug this python function", status="succeeded"):
     return dict(
         event_id=f"e{n}",
+        user_id=f"{team}-user-{n % 4}",
         timestamp=timestamp,
         team_id=team,
         status=status,
@@ -49,7 +50,8 @@ def test_kpis_heatmap_suppression_trend_and_flags():
     assert result["kpis"]["criticalFlags"] == dict(value=1, prevValue=0)
     assert result["kpis"]["topTopic"] == dict(value="coding", prevValue="coding")
     cells = {(c["teamId"], c["topic"]): c["count"] for c in result["heatmap"]}
-    assert cells["eng", "coding"] == 11 and cells["hr", "coding"] is None
+    assert cells["eng", "coding"] == 11 and cells["eng", "legal"] == 0
+    assert cells["hr", "coding"] is None and cells["hr", "legal"] is None
     assert len(result["heatmap"]) == 2 * 7
     assert [p["week"] for p in result["trend"][::7]] == [f"2026-W{w}" for w in range(36, 42)]
     [flag] = result["flags"]
@@ -93,3 +95,9 @@ def test_report_endpoint_rejects_bad_queries(client):
     assert client.get("/report/weekly?model=llm").status_code == 501
     assert client.get("/report/weekly?week=2020-W01").status_code == 404
     assert client.get("/report/weekly?model=keyword").status_code == 200
+
+
+def test_heatmap_hides_a_busy_cell_when_it_is_one_person():
+    rows = [dict(event(i, "2026-10-06T09:00:00Z"), user_id="the-only-user") for i in range(25)]
+    cells = weekly_report(rows, label)["heatmap"]
+    assert all(c["count"] is None for c in cells)

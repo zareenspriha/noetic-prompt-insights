@@ -13,7 +13,7 @@ def main(argv=None):
     cmp.add_argument("--out", type=Path, default=Path("artifacts/compare.json"))
     serve = commands.add_parser("serve")
     serve.add_argument("--host", default="127.0.0.1")
-    serve.add_argument("--port", type=int, default=8000)
+    serve.add_argument("--port", type=int, default=8001)
     imp = commands.add_parser("import-gateway")
     imp.add_argument("--input", type=Path)
     imp.add_argument("--url", default="http://127.0.0.1:8000")
