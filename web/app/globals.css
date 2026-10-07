@@ -100,3 +100,12 @@
   text-transform: uppercase;
   color: var(--primary);
 }
+
+/* "Save as PDF" uses the browser's print dialog. Keep the dark look, drop app chrome. */
+@media print {
+  @page { size: A4 landscape; margin: 12mm; }
+  html, body { -webkit-print-color-adjust: exact; print-color-adjust: exact; background: #000 !important; }
+  aside, .no-print { display: none !important; }
+  main { padding: 0 !important; }
+  .panel { box-shadow: none; break-inside: avoid; }
+}

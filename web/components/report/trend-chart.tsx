@@ -2,10 +2,11 @@
 
 import { Area, AreaChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 import { TOPIC_COLOR, TOPIC_LABEL } from "@/lib/tokens";
-import { TOPICS, type TrendPoint } from "@/types/api";
+import { TOPICS, type Topic, type TrendPoint } from "@/types/api";
 
 /** Stacked weekly prompt volume by topic. */
-export function TrendChart({ data }: { data: TrendPoint[] }) {
+export function TrendChart({ data, topic }: { data: TrendPoint[]; topic?: Topic | null }) {
+  const shown = topic ? [topic] : TOPICS;
   const weeks = [...new Set(data.map((d) => d.week))];
   const rows = weeks.map((week) => {
     const row: Record<string, string | number> = { week: week.replace(/^\d{4}-/, "") };
@@ -27,7 +28,7 @@ export function TrendChart({ data }: { data: TrendPoint[] }) {
               labelStyle={{ color: "var(--foreground)" }}
               formatter={(v, name) => [v, TOPIC_LABEL[name as keyof typeof TOPIC_LABEL] ?? name]}
             />
-            {TOPICS.map((t) => (
+            {shown.map((t) => (
               <Area
                 key={t}
                 type="monotone"
@@ -43,7 +44,7 @@ export function TrendChart({ data }: { data: TrendPoint[] }) {
         </ResponsiveContainer>
       </div>
       <ul className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-muted-foreground" aria-label="Legend">
-        {TOPICS.map((t) => (
+        {shown.map((t) => (
           <li key={t} className="flex items-center gap-1.5">
             <span className="size-2 rounded-full" style={{ background: TOPIC_COLOR[t] }} />
             {TOPIC_LABEL[t]}
