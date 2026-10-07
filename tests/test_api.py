@@ -96,3 +96,10 @@ def test_classify_types_match_frontend_mock_and_enums(client):
         "injection",
     }
     assert all(n["topic"] in topics for n in body["knn"]["neighbors"])
+
+
+def test_sensitivity_comes_from_rules_not_synthetic_boilerplate(client):
+    plain = client.post("/classify", json={"text": "name a fictional pet"}).json()
+    assert plain["knn"]["sensitivity"] == "public" and plain["knn"]["severity"] == "low"
+    salary = client.post("/classify", json={"text": "Offer: base salary of $145,000"}).json()
+    assert salary["knn"]["sensitivity"] == "confidential"

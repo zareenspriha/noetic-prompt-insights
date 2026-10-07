@@ -66,7 +66,14 @@ class NearestNeighbors:
         self.k, self.threshold, self.abstain, self.encode = k, threshold, abstain, encode
 
     def explain(self, text):
-        similarities = self.vectors @ self.encode([text])[0]
+        return self._explain(self.encode([text])[0])
+
+    def predict_many(self, texts):
+        """Labels for many texts with one encoder pass."""
+        return [self._explain(vector)["label"] for vector in self.encode(list(texts))]
+
+    def _explain(self, vector):
+        similarities = self.vectors @ vector
         label, top = _vote(similarities, self.labels, self.k)
         nearest = float(similarities[top[0]])
         if self.abstain and nearest < self.threshold:
