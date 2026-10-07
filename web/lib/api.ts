@@ -68,10 +68,13 @@ export function useClassify() {
   });
 }
 
+/** Cache key for GET /review, shared so pages can update the queue (and the sidebar badge) in place. */
+export const reviewQueueKey = (demo: boolean) => ["review", demo] as const;
+
 export function useReviewQueue() {
   const { demo } = useDemoMode();
   return useQuery({
-    queryKey: ["review", demo],
+    queryKey: reviewQueueKey(demo),
     queryFn: () => (demo ? mock<ReviewItem[]>(reviewMock) : http<ReviewItem[]>("/review")),
   });
 }
@@ -89,6 +92,24 @@ export function useFeedback() {
             undoToken: `demo-${demoCorrections}`,
           })
         : http<FeedbackResponse>("/feedback", { method: "POST", body: JSON.stringify(c) }),
+  });
+}
+
+/** POST /feedback/undo: reverts one correction using the token /feedback returned. */
+export function useUndoFeedback() {
+  const { demo } = useDemoMode();
+  return useMutation({
+    mutationFn: (undoToken: string) =>
+      demo
+        ? mock<Omit<FeedbackResponse, "undoToken">>({
+            ok: true,
+            indexSize: 210 + --demoCorrections,
+            correctionsTotal: demoCorrections,
+          })
+        : http<Omit<FeedbackResponse, "undoToken">>("/feedback/undo", {
+            method: "POST",
+            body: JSON.stringify({ undoToken }),
+          }),
   });
 }
 
