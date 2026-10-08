@@ -27,6 +27,11 @@ def main(argv=None):
     live.add_argument("--mode", choices=["openai", "anthropic"], required=True)
     live.add_argument("--yes", action="store_true", help="authorize one paid request per row")
     live.add_argument("--out", type=Path, default=Path("artifacts/provider-eval.json"))
+    batch = commands.add_parser("label-events", help="LLM labels for the report's model=llm")
+    batch.add_argument("--input", type=Path, default=Path("data/demo-events.ndjson"))
+    batch.add_argument("--mode", choices=["openai", "anthropic"], required=True)
+    batch.add_argument("--yes", action="store_true", help="authorize one paid request per text")
+    batch.add_argument("--out", type=Path, default=Path("artifacts/llm-event-labels.json"))
     args = parser.parse_args(argv)
     if args.command == "demo":
         args.out.mkdir(parents=True, exist_ok=True)
@@ -70,6 +75,21 @@ def main(argv=None):
         args.out.parent.mkdir(parents=True, exist_ok=True)
         args.out.write_text(json.dumps(result, indent=2) + "\n")
         print(f"Classified {result['answered']}/{result['rows']} rows; wrote {args.out}.")
+    elif args.command == "label-events":
+        from .gateway import MAX_BYTES, parse_ndjson
+        from .providers import label_events
+
+        try:
+            with args.input.open("rb") as stream:
+                events = parse_ndjson(stream.read(MAX_BYTES + 1))
+            result = label_events(events, args.mode, allow_live=args.yes)
+        except (ValueError, OSError) as error:
+            parser.exit(2, f"Labelling failed: {error}\n")
+        args.out.parent.mkdir(parents=True, exist_ok=True)
+        args.out.write_text(json.dumps(result, indent=2) + "\n")
+        print(
+            f"Labelled {len(result['labels'])} events with {result['calls']} calls; wrote {args.out}."
+        )
     else:
         from .gateway import parse_ndjson, fetch_gateway, summarize_gateway, MAX_BYTES
 

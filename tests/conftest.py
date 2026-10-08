@@ -11,6 +11,9 @@ def client(monkeypatch, tmp_path):
     """API client with the offline fake encoder and a throwaway corrections file."""
     monkeypatch.setattr(embed, "encode", fake_encode)
     monkeypatch.setattr(api, "CORRECTIONS", tmp_path / "corrections.json")
+    monkeypatch.setattr(api, "LLM_LABELS", tmp_path / "llm-event-labels.json")
+    for name in ("PI_LLM_PROVIDER", "OPENAI_API_KEY", "ANTHROPIC_API_KEY"):
+        monkeypatch.delenv(name, raising=False)
     api.UNDO.clear()
     for cached in CACHES:
         cached.cache_clear()

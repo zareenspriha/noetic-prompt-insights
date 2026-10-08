@@ -87,8 +87,18 @@ Records need `timestamp`, `user_id` and the counted field. Here's what A's curre
    `{OPENAI,ANTHROPIC}_PRICE_{IN,OUT}_PER_MTOK`, or `null` without a price.
    `providers.estimate_cost_usd(text, mode)` is the labelled pre-call estimate for
    `llmCostEstimateUsd`, and returns `null` without a price.
-   **Still to wire in `api.py`:** replace the two `501` responses (`/classify` with `allowLlm`, and
-   `/report/weekly?model=llm`).
+   **Wired into `api.py` (done):**
+   - `POST /classify` with `allowLlm=true` calls the server's provider (`PI_LLM_PROVIDER`,
+     otherwise whichever provider has a key and model). Like k-NN, the rules may raise the
+     LLM's sensitivity and always set severity. `agree` compares topic and sensitivity, and a
+     disagreement sets `needsReview`. No provider configured gives 503; a failed call gives 502.
+     `llmCostEstimateUsd` is `number | null` (contract change), `null` meaning unknown, not free.
+   - `GET /report/weekly?model=llm` never makes a paid call. It reads labels saved by
+     `python -m prompt_insights label-events --mode anthropic --yes`, which makes one call per
+     distinct demo text (267, not 960) and saves only event ids and labels, no text. Missing,
+     incomplete or invalid labels give 409 with that command in the message.
+   - Not yet: LLM answers in `GET /review` (`item.llm` is still `null`), and an LLM row in
+     `/metrics`, which should come from the Task 5 run.
 2. **Task 5 runner (done, offline-tested).** Run
    `python -m prompt_insights eval-provider --input data/benchmark.ndjson --mode anthropic --yes`,
    or with `--input data/dolly-topics.ndjson --split test`. It makes one call per row, with no
