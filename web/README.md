@@ -41,3 +41,24 @@ Without an LLM key, Classify's "Also ask the LLM" shows "No LLM is configured on
 Weekly Report's "LLM zero-shot" labels show how to run `label-events` once.
 
 shadcn/ui is configured (`components.json`); add components with `npx shadcn@latest add button`.
+
+## End-to-end tests (Playwright)
+
+A real browser clicks through the real frontend against the real backend (Demo mode off).
+First time only: `npx playwright install chromium`.
+
+```bash
+npm run test:e2e          # headless, prints pass/fail per test
+npm run test:e2e:headed   # watch Chrome click through the pages
+npm run test:e2e:ui       # Playwright's own window: step through each test, see every screen
+npx playwright show-report
+```
+
+Already-running servers are reused (backend on 8001, frontend on 3000); otherwise Playwright
+starts both (backend via `../.venv/bin/python`, override with `PI_PYTHON`). The suite never turns
+on "Also ask the LLM", and fails if anything tries to, so it makes no paid calls. It checks:
+every page opens; report KPIs match `/report/weekly`; small groups are hidden; the LLM zero-shot
+view uses the saved results; planted secrets never appear; Model Comparison shows keyword, kNN
+and LLM; a prompt that needs review lands at the top of the Review Queue, and a correction
+removes it and Undo brings it back; Data & Trust counts match `/sources`; Demo mode labels its
+numbers as placeholders.
