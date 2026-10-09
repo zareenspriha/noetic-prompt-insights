@@ -11,6 +11,7 @@ import threading
 import uuid
 from contextlib import asynccontextmanager
 import time
+from datetime import datetime, timezone
 from functools import lru_cache
 from typing import Literal
 
@@ -163,7 +164,12 @@ def classify(request: ClassifyRequest):
 def events():
     """Gateway events to report on, validated against the shared gateway contract."""
     with EVENTS.open("rb") as stream:
-        return parse_ndjson(stream.read(MAX_BYTES + 1))
+        rows = parse_ndjson(stream.read(MAX_BYTES + 1))
+    LOADED["at"] = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+    return rows
+
+
+LOADED = {}  # when events() last read the export, for /sources
 
 
 def classifiable():
@@ -430,3 +436,25 @@ def metrics():
 @app.get("/metrics")
 def get_metrics():
     return metrics()
+
+
+@app.get("/sources")
+def sources():
+    """Where the report's events came from: counts only, never text or user ids.
+
+    Events are read from an NDJSON export (PI_EVENTS), not pulled live from the gateway, so
+    `connected` is false. `received` counts non-blank lines before exact-duplicate removal.
+    """
+    rows = events()
+    with EVENTS.open("rb") as stream:
+        received = sum(1 for line in stream.read(MAX_BYTES + 1).splitlines() if line.strip())
+    status = {name: sum(1 for e in rows if e["status"] == name) for name in ("failed", "blocked")}
+    return dict(
+        received=received,
+        deduped=received - len(rows),
+        failed=status["failed"],
+        blocked=status["blocked"],
+        classified=len(classifiable()),
+        gateway=dict(connected=False, url=None, lastImportAt=LOADED.get("at")),
+        project1DashboardUrl=os.environ.get("PI_PROJECT1_DASHBOARD_URL") or None,
+    )
