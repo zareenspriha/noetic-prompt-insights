@@ -153,11 +153,19 @@ def classify(request: ClassifyRequest):
             knn["sensitivity"],
         )
     )
+    needs_review = nearest < LOW_SIMILARITY or agree is False
+    if needs_review:
+        queue_playground(
+            assessed["textRedacted"],
+            {k: v for k, v in knn.items() if k != "neighbors"},
+            llm,
+            "disagreement" if agree is False else "low_similarity",
+        )
     return dict(
         knn=knn,
         llm=llm,
         agree=agree,
-        needsReview=nearest < LOW_SIMILARITY or agree is False,
+        needsReview=needs_review,
         riskSpans=assessed["riskSpans"],
         textRedacted=assessed["textRedacted"],
         # Labelled estimate; null when no provider or price is configured (unknown, not free).
@@ -289,6 +297,23 @@ LOCK = threading.RLock()
 CORRECTIONS = Path(os.environ.get("PI_CORRECTIONS", "artifacts/corrections.json"))
 REVIEW_LIMIT = 50
 UNDO = {}
+# Classify-page prompts that need a person. Redacted text only, held in memory and never
+# written to disk, so they disappear when the server restarts. Newest last; capped.
+PLAYGROUND = {}
+PLAYGROUND_LIMIT = 50
+
+
+def queue_playground(text_redacted, knn, llm, reason):
+    with LOCK:
+        for item_id, item in list(PLAYGROUND.items()):
+            if item["textRedacted"] == text_redacted:
+                del PLAYGROUND[item_id]  # same prompt again: keep only the latest answers
+        item_id = f"playground-{uuid.uuid4().hex[:12]}"
+        PLAYGROUND[item_id] = dict(
+            textRedacted=text_redacted, knn=knn, llm=llm, reason=reason, corrected=None
+        )
+        while len(PLAYGROUND) > PLAYGROUND_LIMIT:
+            PLAYGROUND.pop(next(iter(PLAYGROUND)))
 
 
 @lru_cache(maxsize=1)
@@ -302,8 +327,14 @@ def corrections():
     return store
 
 
+def _item_text(item_id):
+    if item_id in PLAYGROUND:
+        return PLAYGROUND[item_id]["textRedacted"]
+    return classifiable()[item_id]["prompt_redacted"]
+
+
 def _teach(event_id, label):
-    text = classifiable()[event_id]["prompt_redacted"]
+    text = _item_text(event_id)
     row_id = f"feedback-{event_id}"
     index()["topic"].add(row_id, label["topic"], text)
     index()["rows"][row_id] = dict(
@@ -360,7 +391,20 @@ def review_queue():
         seen.add(texts[event_id])
         queue.append((rank, event_id, label, reason))
     queue.sort(key=lambda item: item[:2])
-    return [
+    with LOCK:
+        playground = [
+            dict(
+                id=item_id,
+                textRedacted=item["textRedacted"],
+                knn=item["knn"],
+                llm=item["llm"],
+                reason=item["reason"],
+            )
+            for item_id, item in reversed(PLAYGROUND.items())
+            if item["corrected"] is None
+        ]
+    # Prompts someone just classified come first, newest on top, then gateway events.
+    return playground + [
         dict(
             id=event_id,
             textRedacted=label["textRedacted"],
@@ -368,7 +412,7 @@ def review_queue():
             llm=None,
             reason=reason,
         )
-        for _, event_id, label, reason in queue[:REVIEW_LIMIT]
+        for _, event_id, label, reason in queue[: max(REVIEW_LIMIT - len(playground), 0)]
     ]
 
 
@@ -388,13 +432,19 @@ class Undo(BaseModel):
 def feedback(correction: Correction, reviewer: str = Depends(security.require_reviewer)):
     with LOCK:
         store = corrections()
-        if correction.itemId not in classifiable():
-            raise HTTPException(404, "unknown review item")
-        previous = store.get(correction.itemId)
         label = dict(topic=correction.topic, sensitivity=correction.sensitivity)
-        store[correction.itemId] = label
+        if correction.itemId in PLAYGROUND:
+            # Playground corrections teach the index in memory only, like the item itself.
+            item = PLAYGROUND[correction.itemId]
+            previous = item["corrected"]
+            item["corrected"] = label
+        elif correction.itemId in classifiable():
+            previous = store.get(correction.itemId)
+            store[correction.itemId] = label
+            _save(store)
+        else:
+            raise HTTPException(404, "unknown review item")
         _teach(correction.itemId, label)
-        _save(store)
         security.audit("correct", reviewer, correction.itemId, previous, label)
         token = uuid.uuid4().hex
         UNDO[token] = (correction.itemId, previous, reviewer)
@@ -414,14 +464,21 @@ def undo_feedback(request: Undo, reviewer: str = Depends(security.require_review
             raise HTTPException(404, "unknown or already used undo token")
         event_id, previous, _ = UNDO.pop(request.undoToken)
         store = corrections()
-        undone = store.get(event_id)
-        if previous:
-            store[event_id] = previous
+        if event_id in PLAYGROUND:
+            undone = PLAYGROUND[event_id]["corrected"]
+            PLAYGROUND[event_id]["corrected"] = previous
+        else:
+            undone = store.get(event_id)
+            if previous:
+                store[event_id] = previous
+            else:
+                store.pop(event_id, None)
+            _save(store)
+        known = event_id in PLAYGROUND or event_id in classifiable()
+        if previous and known:
             _teach(event_id, previous)
         else:
-            store.pop(event_id, None)
             _forget(event_id)
-        _save(store)
         security.audit("undo", reviewer, event_id, undone, previous)
         return dict(ok=True, indexSize=len(index()["topic"].ids), correctionsTotal=len(store))
 
