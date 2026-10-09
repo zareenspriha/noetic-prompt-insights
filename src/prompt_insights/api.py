@@ -15,13 +15,13 @@ from datetime import datetime, timezone
 from functools import lru_cache
 from typing import Literal
 
-from fastapi import FastAPI, HTTPException, Query
+from fastapi import Depends, FastAPI, HTTPException, Query
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, ConfigDict, Field
 
 from pathlib import Path
 
-from . import bench, embed, providers, report, risk
+from . import bench, embed, providers, report, risk, security
 from .core import TOPICS, classify as keyword_topic, classify_sensitivity, generate, split
 from .gateway import MAX_BYTES, parse_ndjson
 from .model import load_dolly
@@ -50,13 +50,15 @@ async def lifespan(_app):
     yield
 
 
-app = FastAPI(title="Prompt Insights API", lifespan=lifespan)
+# The interactive API docs describe every route; only serve them while developing (OWASP A02).
+DOCS = {} if security.development() else dict(docs_url=None, redoc_url=None, openapi_url=None)
+app = FastAPI(title="Prompt Insights API", lifespan=lifespan, **DOCS)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=[origin.strip() for origin in ORIGINS.split(",") if origin.strip()],
     allow_origin_regex=LOCAL_ORIGIN,
     allow_methods=["GET", "POST"],
-    allow_headers=["Content-Type"],
+    allow_headers=["Content-Type", "Authorization"],
 )
 
 
@@ -383,7 +385,7 @@ class Undo(BaseModel):
 
 
 @app.post("/feedback")
-def feedback(correction: Correction):
+def feedback(correction: Correction, reviewer: str = Depends(security.require_reviewer)):
     with LOCK:
         store = corrections()
         if correction.itemId not in classifiable():
@@ -393,8 +395,9 @@ def feedback(correction: Correction):
         store[correction.itemId] = label
         _teach(correction.itemId, label)
         _save(store)
+        security.audit("correct", reviewer, correction.itemId, previous, label)
         token = uuid.uuid4().hex
-        UNDO[token] = (correction.itemId, previous)
+        UNDO[token] = (correction.itemId, previous, reviewer)
         return dict(
             ok=True,
             indexSize=len(index()["topic"].ids),
@@ -404,12 +407,14 @@ def feedback(correction: Correction):
 
 
 @app.post("/feedback/undo")
-def undo_feedback(request: Undo):
+def undo_feedback(request: Undo, reviewer: str = Depends(security.require_reviewer)):
     with LOCK:
-        if request.undoToken not in UNDO:
+        # Only the reviewer who made a correction can undo it.
+        if request.undoToken not in UNDO or UNDO[request.undoToken][2] != reviewer:
             raise HTTPException(404, "unknown or already used undo token")
-        event_id, previous = UNDO.pop(request.undoToken)
+        event_id, previous, _ = UNDO.pop(request.undoToken)
         store = corrections()
+        undone = store.get(event_id)
         if previous:
             store[event_id] = previous
             _teach(event_id, previous)
@@ -417,6 +422,7 @@ def undo_feedback(request: Undo):
             store.pop(event_id, None)
             _forget(event_id)
         _save(store)
+        security.audit("undo", reviewer, event_id, undone, previous)
         return dict(ok=True, indexSize=len(index()["topic"].ids), correctionsTotal=len(store))
 
 
