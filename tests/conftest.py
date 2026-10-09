@@ -25,6 +25,7 @@ def client(monkeypatch, tmp_path):
     for name in ("PI_LLM_PROVIDER", "OPENAI_API_KEY", "ANTHROPIC_API_KEY", "PI_ENV"):
         monkeypatch.delenv(name, raising=False)
     api.UNDO.clear()
+    api.PLAYGROUND.clear()
     for cached in CACHES:
         cached.cache_clear()
     yield TestClient(api.app, headers={"Authorization": f"Bearer {REVIEWER_TOKEN}"})
