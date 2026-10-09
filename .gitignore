@@ -22,3 +22,6 @@ demo-output/
 htmlcov/
 coverage.xml
 data/external/
+
+# Local Claude Code / preview settings
+.claude/
