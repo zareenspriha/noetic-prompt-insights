@@ -1,0 +1,588 @@
+{
+  "dataset": {
+    "path": "data/dolly-topics.ndjson",
+    "sha256": "e652b4dea82d9ff6e6cb99cace1e685527cdd6a4a16963580581169071695882",
+    "frozen": false,
+    "split": "test"
+  },
+  "mode": "anthropic",
+  "modelVersions": [
+    "anthropic:claude-sonnet-5-5"
+  ],
+  "predictions": {
+    "dolly-275": {
+      "topic": "coding",
+      "sensitivity": "public"
+    },
+    "dolly-405": {
+      "topic": "coding",
+      "sensitivity": "public"
+    },
+    "dolly-635": {
+      "topic": "coding",
+      "sensitivity": "public"
+    },
+    "dolly-3257": {
+      "topic": "coding",
+      "sensitivity": "public"
+    },
+    "dolly-4437": {
+      "topic": "coding",
+      "sensitivity": "public"
+    },
+    "dolly-5283": {
+      "topic": "coding",
+      "sensitivity": "public"
+    },
+    "dolly-5480": {
+      "topic": "coding",
+      "sensitivity": "public"
+    },
+    "dolly-6424": {
+      "topic": "coding",
+      "sensitivity": "public"
+    },
+    "dolly-6509": {
+      "topic": "data_analysis",
+      "sensitivity": "public"
+    },
+    "dolly-6590": {
+      "topic": "other",
+      "sensitivity": "public"
+    },
+    "dolly-6614": {
+      "topic": "other",
+      "sensitivity": "public"
+    },
+    "dolly-7296": {
+      "topic": "other",
+      "sensitivity": "public"
+    },
+    "dolly-8175": {
+      "topic": "coding",
+      "sensitivity": "public"
+    },
+    "dolly-9150": {
+      "topic": "coding",
+      "sensitivity": "public"
+    },
+    "dolly-9487": {
+      "topic": "coding",
+      "sensitivity": "public"
+    },
+    "dolly-10105": {
+      "topic": "coding",
+      "sensitivity": "public"
+    },
+    "dolly-11039": {
+      "topic": "other",
+      "sensitivity": "public"
+    },
+    "dolly-11490": {
+      "topic": "other",
+      "sensitivity": "public"
+    },
+    "dolly-11764": {
+      "topic": "coding",
+      "sensitivity": "public"
+    },
+    "dolly-12032": {
+      "topic": "coding",
+      "sensitivity": "public"
+    },
+    "dolly-12324": {
+      "topic": "coding",
+      "sensitivity": "public"
+    },
+    "dolly-12521": {
+      "topic": "coding",
+      "sensitivity": "public"
+    },
+    "dolly-13307": {
+      "topic": "coding",
+      "sensitivity": "public"
+    },
+    "dolly-13987": {
+      "topic": "coding",
+      "sensitivity": "public"
+    },
+    "dolly-14013": {
+      "topic": "coding",
+      "sensitivity": "public"
+    },
+    "dolly-14131": {
+      "topic": "coding",
+      "sensitivity": "public"
+    },
+    "dolly-815": {
+      "topic": "writing",
+      "sensitivity": "public"
+    },
+    "dolly-864": {
+      "topic": "writing",
+      "sensitivity": "public"
+    },
+    "dolly-995": {
+      "topic": "writing",
+      "sensitivity": "public"
+    },
+    "dolly-2560": {
+      "topic": "writing",
+      "sensitivity": "public"
+    },
+    "dolly-3058": {
+      "topic": "writing",
+      "sensitivity": "public"
+    },
+    "dolly-3764": {
+      "topic": "writing",
+      "sensitivity": "public"
+    },
+    "dolly-5073": {
+      "topic": "writing",
+      "sensitivity": "public"
+    },
+    "dolly-5183": {
+      "topic": "writing",
+      "sensitivity": "public"
+    },
+    "dolly-5814": {
+      "topic": "writing",
+      "sensitivity": "public"
+    },
+    "dolly-6022": {
+      "topic": "writing",
+      "sensitivity": "public"
+    },
+    "dolly-6961": {
+      "topic": "writing",
+      "sensitivity": "public"
+    },
+    "dolly-7380": {
+      "topic": "writing",
+      "sensitivity": "public"
+    },
+    "dolly-8442": {
+      "topic": "writing",
+      "sensitivity": "public"
+    },
+    "dolly-9725": {
+      "topic": "writing",
+      "sensitivity": "public"
+    },
+    "dolly-10303": {
+      "topic": "writing",
+      "sensitivity": "public"
+    },
+    "dolly-11628": {
+      "topic": "writing",
+      "sensitivity": "public"
+    },
+    "dolly-12423": {
+      "topic": "writing",
+      "sensitivity": "public"
+    },
+    "dolly-12734": {
+      "topic": "writing",
+      "sensitivity": "public"
+    },
+    "dolly-12874": {
+      "topic": "writing",
+      "sensitivity": "public"
+    },
+    "dolly-13453": {
+      "topic": "writing",
+      "sensitivity": "public"
+    },
+    "dolly-391": {
+      "topic": "data_analysis",
+      "sensitivity": "public"
+    },
+    "dolly-402": {
+      "topic": "data_analysis",
+      "sensitivity": "public"
+    },
+    "dolly-901": {
+      "topic": "data_analysis",
+      "sensitivity": "public"
+    },
+    "dolly-1670": {
+      "topic": "data_analysis",
+      "sensitivity": "public"
+    },
+    "dolly-1990": {
+      "topic": "other",
+      "sensitivity": "public"
+    },
+    "dolly-2584": {
+      "topic": "other",
+      "sensitivity": "public"
+    },
+    "dolly-4608": {
+      "topic": "data_analysis",
+      "sensitivity": "public"
+    },
+    "dolly-4922": {
+      "topic": "data_analysis",
+      "sensitivity": "public"
+    },
+    "dolly-5830": {
+      "topic": "data_analysis",
+      "sensitivity": "public"
+    },
+    "dolly-7993": {
+      "topic": "data_analysis",
+      "sensitivity": "public"
+    },
+    "dolly-9675": {
+      "topic": "data_analysis",
+      "sensitivity": "public"
+    },
+    "dolly-10082": {
+      "topic": "data_analysis",
+      "sensitivity": "public"
+    },
+    "dolly-11149": {
+      "topic": "data_analysis",
+      "sensitivity": "public"
+    },
+    "dolly-14765": {
+      "topic": "data_analysis",
+      "sensitivity": "public"
+    },
+    "dolly-1981": {
+      "topic": "data_analysis",
+      "sensitivity": "confidential"
+    },
+    "dolly-3228": {
+      "topic": "other",
+      "sensitivity": "public"
+    },
+    "dolly-3574": {
+      "topic": "customer_email",
+      "sensitivity": "public"
+    },
+    "dolly-7354": {
+      "topic": "customer_email",
+      "sensitivity": "internal"
+    },
+    "dolly-9060": {
+      "topic": "customer_email",
+      "sensitivity": "public"
+    },
+    "dolly-13420": {
+      "topic": "other",
+      "sensitivity": "public"
+    },
+    "dolly-1684": {
+      "topic": "legal",
+      "sensitivity": "public"
+    },
+    "dolly-2543": {
+      "topic": "legal",
+      "sensitivity": "public"
+    },
+    "dolly-3597": {
+      "topic": "legal",
+      "sensitivity": "public"
+    },
+    "dolly-4222": {
+      "topic": "legal",
+      "sensitivity": "public"
+    },
+    "dolly-5483": {
+      "topic": "legal",
+      "sensitivity": "public"
+    },
+    "dolly-6703": {
+      "topic": "other",
+      "sensitivity": "public"
+    },
+    "dolly-11427": {
+      "topic": "writing",
+      "sensitivity": "public"
+    },
+    "dolly-11729": {
+      "topic": "other",
+      "sensitivity": "public"
+    },
+    "dolly-13858": {
+      "topic": "other",
+      "sensitivity": "public"
+    },
+    "dolly-14146": {
+      "topic": "legal",
+      "sensitivity": "public"
+    },
+    "dolly-88": {
+      "topic": "hr",
+      "sensitivity": "internal"
+    },
+    "dolly-1143": {
+      "topic": "hr",
+      "sensitivity": "internal"
+    },
+    "dolly-2785": {
+      "topic": "hr",
+      "sensitivity": "public"
+    },
+    "dolly-4224": {
+      "topic": "hr",
+      "sensitivity": "public"
+    },
+    "dolly-4379": {
+      "topic": "other",
+      "sensitivity": "public"
+    },
+    "dolly-4472": {
+      "topic": "other",
+      "sensitivity": "public"
+    },
+    "dolly-8562": {
+      "topic": "hr",
+      "sensitivity": "public"
+    },
+    "dolly-9085": {
+      "topic": "hr",
+      "sensitivity": "public"
+    },
+    "dolly-9422": {
+      "topic": "hr",
+      "sensitivity": "public"
+    },
+    "dolly-10710": {
+      "topic": "hr",
+      "sensitivity": "public"
+    },
+    "dolly-12193": {
+      "topic": "hr",
+      "sensitivity": "internal"
+    },
+    "dolly-12696": {
+      "topic": "other",
+      "sensitivity": "public"
+    },
+    "dolly-13101": {
+      "topic": "hr",
+      "sensitivity": "public"
+    },
+    "dolly-13140": {
+      "topic": "writing",
+      "sensitivity": "public"
+    },
+    "dolly-1184": {
+      "topic": "other",
+      "sensitivity": "public"
+    },
+    "dolly-1377": {
+      "topic": "other",
+      "sensitivity": "public"
+    },
+    "dolly-1540": {
+      "topic": "other",
+      "sensitivity": "public"
+    },
+    "dolly-1901": {
+      "topic": "other",
+      "sensitivity": "public"
+    },
+    "dolly-2725": {
+      "topic": "other",
+      "sensitivity": "public"
+    },
+    "dolly-3758": {
+      "topic": "other",
+      "sensitivity": "public"
+    },
+    "dolly-4066": {
+      "topic": "other",
+      "sensitivity": "public"
+    },
+    "dolly-5140": {
+      "topic": "other",
+      "sensitivity": "public"
+    },
+    "dolly-5686": {
+      "topic": "other",
+      "sensitivity": "public"
+    },
+    "dolly-6471": {
+      "topic": "other",
+      "sensitivity": "public"
+    },
+    "dolly-7018": {
+      "topic": "other",
+      "sensitivity": "public"
+    },
+    "dolly-8830": {
+      "topic": "other",
+      "sensitivity": "public"
+    },
+    "dolly-8884": {
+      "topic": "other",
+      "sensitivity": "public"
+    },
+    "dolly-9915": {
+      "topic": "other",
+      "sensitivity": "public"
+    },
+    "dolly-10099": {
+      "topic": "other",
+      "sensitivity": "public"
+    },
+    "dolly-12294": {
+      "topic": "other",
+      "sensitivity": "public"
+    },
+    "dolly-14020": {
+      "topic": "other",
+      "sensitivity": "public"
+    }
+  },
+  "rows": 107,
+  "answered": 107,
+  "failed": 0,
+  "quality": {
+    "topic": {
+      "samples": 107,
+      "accuracy": 0.822429906542056,
+      "per_class": {
+        "coding": {
+          "precision": 1.0,
+          "recall": 0.7692307692307693,
+          "f1-score": 0.8695652173913043,
+          "support": 26.0
+        },
+        "writing": {
+          "precision": 0.9090909090909091,
+          "recall": 1.0,
+          "f1-score": 0.9523809523809523,
+          "support": 20.0
+        },
+        "data_analysis": {
+          "precision": 0.8571428571428571,
+          "recall": 0.8571428571428571,
+          "f1-score": 0.8571428571428571,
+          "support": 14.0
+        },
+        "customer_email": {
+          "precision": 1.0,
+          "recall": 0.5,
+          "f1-score": 0.6666666666666666,
+          "support": 6.0
+        },
+        "legal": {
+          "precision": 1.0,
+          "recall": 0.6,
+          "f1-score": 0.75,
+          "support": 10.0
+        },
+        "hr": {
+          "precision": 1.0,
+          "recall": 0.7142857142857143,
+          "f1-score": 0.8333333333333334,
+          "support": 14.0
+        },
+        "other": {
+          "precision": 0.53125,
+          "recall": 1.0,
+          "f1-score": 0.6938775510204082,
+          "support": 17.0
+        }
+      },
+      "macro_f1": 0.8032809397050745,
+      "confusion_labels": [
+        "coding",
+        "writing",
+        "data_analysis",
+        "customer_email",
+        "legal",
+        "hr",
+        "other"
+      ],
+      "confusion_matrix": [
+        [
+          20,
+          0,
+          1,
+          0,
+          0,
+          0,
+          5
+        ],
+        [
+          0,
+          20,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        [
+          0,
+          0,
+          12,
+          0,
+          0,
+          0,
+          2
+        ],
+        [
+          0,
+          0,
+          1,
+          3,
+          0,
+          0,
+          2
+        ],
+        [
+          0,
+          1,
+          0,
+          0,
+          6,
+          0,
+          3
+        ],
+        [
+          0,
+          1,
+          0,
+          0,
+          0,
+          10,
+          3
+        ],
+        [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          17
+        ]
+      ]
+    },
+    "sensitivity": null,
+    "confidentialRecall": null,
+    "confidentialFalseNegatives": null,
+    "topicAccuracyByKind": {}
+  },
+  "latencyMs": {
+    "p50": 1587.1,
+    "max": 11619.8
+  },
+  "tokens": {
+    "input": 57597,
+    "output": 2269,
+    "source": "provider-reported usage"
+  },
+  "costUsd": {
+    "total": 0.137884,
+    "per1k": 1.2886,
+    "source": "measured tokens x ANTHROPIC_PRICE_IN/OUT_PER_MTOK"
+  }
+}

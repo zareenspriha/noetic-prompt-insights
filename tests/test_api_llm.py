@@ -147,3 +147,61 @@ def test_label_events_cli_requires_yes(tmp_path):
     with pytest.raises(SystemExit) as refused:
         main(["label-events", "--mode", "openai", "--out", str(out)])
     assert refused.value.code == 2 and not out.exists()
+
+
+def saved_run(rows, meta, **changes):
+    run = dict(
+        dataset=dict(sha256=meta["sha256"]),
+        modelVersions=["anthropic:test-model"],
+        predictions={r["id"]: dict(topic=r["topic"], sensitivity=r["sensitivity"]) for r in rows},
+        latencyMs=dict(p50=901.5),
+        costUsd=dict(per1k=0.42),
+    )
+    run.update(changes)
+    return run
+
+
+def test_metrics_adds_saved_llm_run_and_compares_knn_with_it(client, monkeypatch):
+    from prompt_insights import bench
+
+    def forbidden(*args, **kwargs):
+        raise AssertionError("GET /metrics must not make a paid call")
+
+    monkeypatch.setattr(providers, "llm_prediction", forbidden)
+    rows, meta = bench.load_benchmark()
+    api.LLM_EVAL.write_text(json.dumps(saved_run(rows, meta)))
+    body = client.get("/metrics").json()
+    llm = {m["model"]: m for m in body["models"]}["llm"]
+    assert [m["model"] for m in body["models"]] == ["keyword", "knn", "llm"]
+    assert body["agreement"]["between"] == ["knn", "llm"]
+    assert llm["modelVersion"] == "anthropic:test-model"
+    assert (llm["p50LatencyMs"], llm["costPer1kUsd"]) == (901.5, 0.42)
+    assert llm["topicMacroF1"] > 0.9  # the saved answers are the gold labels
+
+
+def test_metrics_ignores_a_run_on_a_different_or_partial_set(client):
+    from prompt_insights import bench
+
+    rows, meta = bench.load_benchmark()
+    for run in (
+        saved_run(rows, meta, dataset=dict(sha256="not-this-benchmark")),
+        saved_run(rows[1:], meta),
+    ):
+        api.LLM_EVAL.write_text(json.dumps(run))
+        body = client.get("/metrics").json()
+        assert [m["model"] for m in body["models"]] == ["keyword", "knn"]
+        assert body["agreement"]["between"] == ["knn", "keyword"]
+
+
+def test_eval_report_keeps_per_row_answers_without_text(monkeypatch):
+    from prompt_insights.providers import evaluate_provider
+
+    monkeypatch.setenv("OPENAI_API_KEY", "test-only-key")
+    monkeypatch.setenv("OPENAI_MODEL", "configured-test-model")
+    rows = [
+        dict(id=f"r{i}", text=f"Debug my python function number {i}", topic="coding")
+        for i in range(3)
+    ]
+    report = evaluate_provider(rows, "openai", True, openai())
+    assert set(report["predictions"]) == {"r0", "r1", "r2"}
+    assert "Debug my python" not in json.dumps(report)

@@ -50,19 +50,15 @@ def request_structured(system, payload, schema, mode, allow_live=False, transpor
     else:
         url = "https://api.anthropic.com/v1/messages"
         headers = {"x-api-key": key, "anthropic-version": "2023-06-01"}
+        # Structured outputs, not forced tool use: current models (Opus 5.5, Sonnet 5.5,
+        # Fable 5.1) reject tool_choice "tool". Low effort suits a one-line classification;
+        # max_tokens leaves room for thinking, which current models may do before answering.
         body = dict(
             model=model,
             system=system,
-            max_tokens=1024,
+            max_tokens=4096,
             messages=[dict(role="user", content=payload)],
-            tools=[
-                dict(
-                    name="submit_result",
-                    description="Submit the bounded analysis result",
-                    input_schema=schema,
-                )
-            ],
-            tool_choice={"type": "tool", "name": "submit_result"},
+            output_config=dict(effort="low", format=dict(type="json_schema", schema=schema)),
         )
     try:
         started = time.perf_counter()
@@ -93,14 +89,13 @@ def request_structured(system, payload, schema, mode, allow_live=False, transpor
         )
         if mode == "openai":
             return dict(content=data["choices"][0]["message"]["content"], **measured)
-        blocks = [
-            block
-            for block in data["content"]
-            if block.get("type") == "tool_use" and block.get("name") == "submit_result"
-        ]
-        if len(blocks) != 1:
+        # A refusal or a cut-off answer may not match the schema; never guess a label from it.
+        if data.get("stop_reason") != "end_turn":
+            raise ValueError("Provider did not finish a structured answer")
+        texts = [block["text"] for block in data["content"] if block.get("type") == "text"]
+        if len(texts) != 1:
             raise ValueError("Missing structured provider response")
-        return dict(content=json.dumps(blocks[0]["input"]), **measured)
+        return dict(content=texts[0], **measured)
     except (
         httpx.HTTPError,
         KeyError,

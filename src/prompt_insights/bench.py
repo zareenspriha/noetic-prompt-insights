@@ -38,8 +38,9 @@ def _per_class(truth, predicted, labels):
     return per_class, macro_f1, dict(labels=labels, matrix=matrix)
 
 
-def score_model(name, version, predict, rows):
-    """`predict(text)` returns (topic, sensitivity). Latency is measured per prompt."""
+def score_model(name, version, predict, rows, p50_latency_ms=None, cost_per_1k_usd=None):
+    """`predict(text)` returns (topic, sensitivity). Latency is measured per prompt unless the
+    answers were saved from an earlier run, whose measured latency and cost are passed in."""
     topics, sensitivities, latencies = [], [], []
     for row in rows:
         started = time.perf_counter()
@@ -66,15 +67,21 @@ def score_model(name, version, predict, rows):
         sensitivityPerClass=sens_per_class,
         topicConfusion=topic_confusion,
         sensitivityConfusion=sens_confusion,
-        costPer1kUsd=None,  # local models: compute cost is not measured
-        p50LatencyMs=round(statistics.median(latencies), 2),
+        costPer1kUsd=cost_per_1k_usd,  # None for local models: compute cost is not measured
+        p50LatencyMs=p50_latency_ms
+        if p50_latency_ms is not None
+        else round(statistics.median(latencies), 2),
     ), topics
 
 
 def benchmark_metrics(models, compare=("knn", "keyword")):
-    """`models` is a list of (name, version, predict); `compare` names the agreement pair."""
+    """`models` is a list of (name, version, predict) or (name, version, predict, extras), where
+    extras are score_model keyword arguments; `compare` names the agreement pair."""
     rows, meta = load_benchmark()
-    scored = {name: score_model(name, version, predict, rows) for name, version, predict in models}
+    scored = {
+        name: score_model(name, version, predict, rows, **(rest[0] if rest else {}))
+        for name, version, predict, *rest in models
+    }
     first, second = (scored[name][1] for name in compare)
     agree = sum(a == b for a, b in zip(first, second))
     frozen = meta["frozenAt"]

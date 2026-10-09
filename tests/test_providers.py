@@ -52,7 +52,9 @@ def openai(answer=None, usage=True, seen=None):
     return httpx.MockTransport(handler)
 
 
-def anthropic(seen=None):
+def anthropic(seen=None, stop_reason="end_turn"):
+    """Mock Messages API with structured outputs: a thinking block, then one JSON text block."""
+
     def handler(request):
         if seen is not None:
             seen.append(request.content.decode())
@@ -60,18 +62,31 @@ def anthropic(seen=None):
             200,
             json=dict(
                 model="claude-test-snapshot",
+                stop_reason=stop_reason,
                 usage=dict(input_tokens=300, output_tokens=40),
                 content=[
-                    dict(
-                        type="tool_use",
-                        name="submit_result",
-                        input=dict(topic="legal", sensitivity="confidential"),
-                    )
+                    dict(type="thinking", thinking=""),
+                    dict(type="text", text='{"topic": "legal", "sensitivity": "confidential"}'),
                 ],
             ),
         )
 
     return httpx.MockTransport(handler)
+
+
+def test_anthropic_uses_structured_outputs_not_forced_tool_use(live):
+    seen = []
+    request_structured("s", PAYLOAD, {"type": "object"}, "anthropic", True, anthropic(seen))
+    body = json.loads(seen[0])
+    assert "tool_choice" not in body and "tools" not in body
+    assert body["output_config"]["format"] == {"type": "json_schema", "schema": {"type": "object"}}
+    assert body["output_config"]["effort"] == "low"
+
+
+@pytest.mark.parametrize("stop_reason", ["refusal", "max_tokens"])
+def test_unfinished_anthropic_answers_are_rejected_not_guessed(live, stop_reason):
+    with pytest.raises(ValueError, match="Provider request failed"):
+        request_structured("s", PAYLOAD, {}, "anthropic", True, anthropic(stop_reason=stop_reason))
 
 
 def test_transport_reports_measured_usage_model_and_latency(live):
