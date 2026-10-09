@@ -2,6 +2,7 @@ import { test, expect } from "./fixtures";
 
 const PAGES = [
   { link: "Weekly report", path: "/", heading: "What people used AI for this week" },
+  { link: "Team insights", path: "/insights", heading: "Team insights" },
   { link: "Classify a prompt", path: "/classify", heading: "Classify Playground" },
   { link: "Review queue", path: "/review", heading: "Review Queue" },
   { link: "Model comparison", path: "/models", heading: "Model Comparison" },
