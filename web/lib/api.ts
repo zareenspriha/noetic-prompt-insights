@@ -22,13 +22,41 @@ import sourcesMock from "@/mocks/sources.json";
 /** FastAPI base URL. Set NEXT_PUBLIC_API_URL in web/.env.local (default: local uvicorn). */
 const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://127.0.0.1:8001";
 
+/** A response the backend sent on purpose (4xx/5xx), with FastAPI's `detail` message. */
+export class ApiError extends Error {
+  constructor(
+    readonly status: number,
+    message: string,
+  ) {
+    super(message);
+    this.name = "ApiError";
+  }
+}
+
 async function http<T>(path: string, init?: RequestInit): Promise<T> {
-  const res = await fetch(`${API_URL}${path}`, {
-    ...init,
-    headers: { "Content-Type": "application/json", ...init?.headers },
-  });
-  if (!res.ok) throw new Error(`${init?.method ?? "GET"} ${path} failed: ${res.status}`);
+  let res: Response;
+  try {
+    res = await fetch(`${API_URL}${path}`, {
+      ...init,
+      headers: { "Content-Type": "application/json", ...init?.headers },
+    });
+  } catch {
+    throw new Error(
+      `Can't reach the backend at ${API_URL}. Start it with "python -m prompt_insights serve", or turn on Demo mode.`,
+    );
+  }
+  if (!res.ok) {
+    const body = await res.json().catch(() => null);
+    const detail = typeof body?.detail === "string" ? body.detail : `request failed (${res.status})`;
+    throw new ApiError(res.status, detail);
+  }
   return res.json() as Promise<T>;
+}
+
+/** Human-readable error for EmptyState/toasts: the backend's own `detail` (e.g. "No LLM is
+ *  configured on the server…"), or a hint to start the backend when it can't be reached. */
+export function errorMessage(error: unknown): string {
+  return error instanceof Error ? error.message : String(error);
 }
 
 /** Fake latency so loading skeletons are visible in demo mode. */

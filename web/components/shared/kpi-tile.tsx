@@ -29,10 +29,20 @@ export function KpiTile({
   /** Override the change pill text (e.g. "Last week: Coding"). */
   note?: string;
 }) {
-  const delta = prev === null || prev === 0 ? null : (value - prev) / prev;
+  // From 0 a percentage is meaningless, so show the absolute change instead.
+  const fromZero = prev === 0;
+  const delta = prev === null ? null : fromZero ? value : (value - prev) / prev;
   const up = delta !== null && delta > 0;
   const good = delta === null || delta === 0 ? null : goodWhen === "up" ? up : !up;
   const Arrow = delta === null || delta === 0 ? Minus : up ? ArrowUpRight : ArrowDownRight;
+  const change =
+    delta === null
+      ? "No previous week"
+      : fromZero
+        ? delta === 0
+          ? "Same as last week (0)"
+          : `+${format(value)} vs 0 last week`
+        : `${(Math.abs(delta) * 100).toFixed(0)}% vs last week`;
 
   return (
     <div className={cn("panel relative min-w-0 overflow-hidden p-4", spark && spark.length > 1 && "pb-14")}>
@@ -54,7 +64,7 @@ export function KpiTile({
         )}
       >
         <Arrow className="size-3.5" aria-hidden />
-        {note ?? (delta === null ? "No previous week" : `${(Math.abs(delta) * 100).toFixed(0)}% vs last week`)}
+        {note ?? change}
       </span>
       {spark && spark.length > 1 && (
         <div className="pointer-events-none absolute inset-x-0 bottom-0 h-11 opacity-70" aria-hidden>

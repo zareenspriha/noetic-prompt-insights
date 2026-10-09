@@ -93,3 +93,15 @@ def test_sensitivity_comes_from_rules_not_synthetic_boilerplate(client):
     assert plain["knn"]["sensitivity"] == "public" and plain["knn"]["severity"] == "low"
     salary = client.post("/classify", json={"text": "Offer: base salary of $145,000"}).json()
     assert salary["knn"]["sensitivity"] == "confidential"
+
+
+def test_cors_allows_next_on_a_fallback_port_but_not_other_sites(client):
+    def allowed(origin):
+        response = client.options(
+            "/report/weekly",
+            headers={"Origin": origin, "Access-Control-Request-Method": "GET"},
+        )
+        return response.headers.get("access-control-allow-origin") == origin
+
+    assert allowed("http://localhost:3001") and allowed("http://127.0.0.1:3002")
+    assert not allowed("https://evil.example") and not allowed("http://localhost.evil.example")

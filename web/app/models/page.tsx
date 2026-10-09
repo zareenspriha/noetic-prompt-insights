@@ -2,7 +2,8 @@
 
 // OWNER: F2 (feat/model-comparison)
 import { useState } from "react";
-import { useMetrics } from "@/lib/api";
+import { errorMessage, useMetrics } from "@/lib/api";
+import { useDemoMode } from "@/lib/demo-mode";
 import { TOPIC_LABEL } from "@/lib/tokens";
 import { cn } from "@/lib/utils";
 import { PageHeader } from "@/components/shared/page-header";
@@ -12,7 +13,8 @@ import { Skeleton } from "@/components/shared/skeleton";
 import { ScoreTable } from "@/components/models/score-table";
 import { PerClassTable } from "@/components/models/per-class-table";
 import { ConfusionMatrix } from "@/components/models/confusion-matrix";
-import { MODEL_LABEL } from "@/components/models/labels";
+import { MODEL_LABEL, headline } from "@/components/models/labels";
+import { QualityScatter } from "@/components/models/quality-scatter";
 import type { Metrics, ModelId, Topic } from "@/types/api";
 
 type Target = "topic" | "sensitivity";
@@ -62,7 +64,7 @@ export default function ModelsPage() {
         <EmptyState
           variant="error"
           title="Couldn't load the benchmark results"
-          message={`${String(error)}. Is the backend running? Turn on Demo mode to use seeded data.`}
+          message={errorMessage(error)}
         />
       ) : isLoading || !data ? (
         <div className="grid gap-4">
@@ -87,9 +89,20 @@ function Results({ data }: { data: Metrics }) {
   const hasLlm = data.models.some((m) => m.model === "llm");
   const confusion = target === "topic" ? model.topicConfusion : model.sensitivityConfusion;
   const [a, b] = data.agreement.between;
+  const { demo } = useDemoMode();
 
   return (
     <div className="grid gap-4">
+      {demo && (
+        <div role="alert" className="rounded-xl border border-sev-medium/40 bg-sev-medium/10 px-4 py-3 text-sm text-sev-medium">
+          Demo mode: these are placeholder numbers to show the layout, not results. Turn Demo mode off to see real scores.
+        </div>
+      )}
+      <div role="status" className="panel border-primary/25 px-5 py-4">
+        <p className="eyebrow mb-1">Headline</p>
+        <p className="text-lg leading-snug">{headline(data.models)}</p>
+      </div>
+
       <ChartCard
         title="Headline scores"
         description="Higher is better for F1 and confidential caught. Macro-F1 weights every class equally."
@@ -170,6 +183,10 @@ function Results({ data }: { data: Metrics }) {
           />
           <ConfusionMatrix labels={confusion.labels} matrix={confusion.matrix} format={formatLabel(target)} />
         </div>
+      </ChartCard>
+
+      <ChartCard title="Quality vs cost" description="Topic macro-F1 for each model. Up and to the left is better.">
+        <QualityScatter models={data.models} />
       </ChartCard>
     </div>
   );

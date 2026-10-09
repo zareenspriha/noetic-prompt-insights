@@ -3,7 +3,7 @@
 // OWNER: F1 (feat/weekly-report)
 import { useMemo, useState } from "react";
 import { AlertOctagon, FileDown, Lock, MessageSquareText, Printer, Sparkles } from "lucide-react";
-import { useWeeklyReport } from "@/lib/api";
+import { errorMessage, useWeeklyReport } from "@/lib/api";
 import { exportReportCsv } from "@/lib/export";
 import { TOPIC_LABEL } from "@/lib/tokens";
 import { KpiTile } from "@/components/shared/kpi-tile";
@@ -77,7 +77,7 @@ export default function WeeklyReportPage() {
         <EmptyState
           variant="error"
           title="Couldn't load the report"
-          message={`${String(error)}. Is the backend running? Turn on Demo mode to use seeded data.`}
+          message={errorMessage(error)}
         />
       ) : isLoading || !data ? (
         <div className="grid gap-4">
@@ -145,7 +145,7 @@ export default function WeeklyReportPage() {
             <ChartCard
               className="xl:col-span-2"
               title="Weekly trend"
-              description={filters.topic ? `${TOPIC_LABEL[filters.topic]}, last 6 weeks, all teams` : "Prompt volume by topic, last 6 weeks"}
+              description={`${filters.topic ? `${TOPIC_LABEL[filters.topic]}, all teams` : "Prompts by topic"}, last 6 weeks. Gaps are weeks hidden for privacy.`}
             >
               <TrendChart data={data.trend} topic={filters.topic} />
             </ChartCard>

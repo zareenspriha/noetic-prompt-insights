@@ -2,7 +2,7 @@
 
 // OWNER: F1 (feat/data-trust). Policy text mirrors docs/DATA_GOVERNANCE.md; keep the two in sync.
 import { Check, CircleAlert } from "lucide-react";
-import { useSources } from "@/lib/api";
+import { errorMessage, useSources } from "@/lib/api";
 import { PageHeader } from "@/components/shared/page-header";
 import { ChartCard } from "@/components/shared/chart-card";
 import { EmptyState } from "@/components/shared/empty-state";
@@ -35,6 +35,7 @@ const PROTECTIONS = [
   "Failed and blocked requests are counted but never classified",
   "Real prompt text is refused today: only synthetic=true exports carry text",
   "The gateway token lives in an environment variable and is never written to disk",
+  "Paid LLM calls run only after someone switches them on, and only redacted text is sent",
 ];
 
 const LIMITS = [
@@ -73,7 +74,7 @@ export default function DataTrustPage() {
             <EmptyState
               variant="error"
               title="Couldn't load import stats"
-              message={`${String(error)}. Is the backend running? Turn on Demo mode to use seeded data.`}
+              message={errorMessage(error)}
             />
           ) : isLoading || !data ? (
             <Skeleton className="h-40" />

@@ -38,6 +38,8 @@ EVENTS = Path(
     os.environ.get("PI_EVENTS", Path(__file__).resolve().parents[2] / "data/demo-events.ndjson")
 )
 ORIGINS = os.environ.get("PI_CORS_ORIGINS", "http://localhost:3000,http://127.0.0.1:3000")
+# Next.js moves to 3001, 3002, ... when 3000 is busy; any local port is still this machine.
+LOCAL_ORIGIN = r"http://(localhost|127\.0\.0\.1)(:\d+)?"
 
 
 @asynccontextmanager
@@ -52,6 +54,7 @@ app = FastAPI(title="Prompt Insights API", lifespan=lifespan)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=[origin.strip() for origin in ORIGINS.split(",") if origin.strip()],
+    allow_origin_regex=LOCAL_ORIGIN,
     allow_methods=["GET", "POST"],
     allow_headers=["Content-Type"],
 )
