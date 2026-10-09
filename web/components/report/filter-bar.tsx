@@ -70,7 +70,7 @@ export function FilterBar({
         options={[
           { value: "knn", label: "kNN (embedding)" },
           { value: "keyword", label: "Keyword baseline" },
-          { value: "llm", label: "LLM zero-shot (needs key)" },
+          { value: "llm", label: "LLM zero-shot" },
         ]}
         onChange={(v) => setFilters({ ...filters, model: v ?? "knn" })}
       />

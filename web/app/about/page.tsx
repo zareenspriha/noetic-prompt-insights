@@ -1,57 +1,57 @@
 "use client";
 
-// OWNER: F1. Data & Trust: where data comes from, how it is classified, privacy rules and limits.
-// Content mirrors docs/DATA_GOVERNANCE.md and docs/EVALUATION.md; keep them in sync.
-import { ArrowRight, Ban, CircleCheck, CircleDashed, Database, FileText, ExternalLink, Filter, PlugZap, ShieldCheck, Tags } from "lucide-react";
+// OWNER: F1 (feat/data-trust). Policy text mirrors docs/DATA_GOVERNANCE.md; keep the two in sync.
+import { Check, CircleAlert } from "lucide-react";
 import { errorMessage, useSources } from "@/lib/api";
 import { PageHeader } from "@/components/shared/page-header";
+import { ChartCard } from "@/components/shared/chart-card";
 import { EmptyState } from "@/components/shared/empty-state";
 import { Skeleton } from "@/components/shared/skeleton";
-import { ChartCard } from "@/components/shared/chart-card";
+import { SourceStats } from "@/components/about/source-stats";
 
-const STEPS = [
-  { icon: PlugZap, title: "Import", text: "Gateway events are validated against the shared contract. Unknown fields, bad timestamps and oversized files are rejected." },
-  { icon: Filter, title: "Filter", text: "Duplicates are dropped. Failed and blocked requests are counted but never classified." },
-  { icon: Tags, title: "Classify", text: "kNN over MiniLM embeddings picks the topic and shows the 5 examples behind it. Risk rules find keys, passwords and personal data, mask them, and set severity." },
-  { icon: ShieldCheck, title: "Report", text: "Only aggregates reach the report. Small groups are hidden. Flags show redacted text only." },
+const PIPELINE = [
+  {
+    title: "The gateway redacts",
+    text: "The AI Gateway (Project 1) logs each request and masks the prompt before it reaches us. Raw prompt text has no field in the contract.",
+  },
+  {
+    title: "We validate the export",
+    text: "Strict schema, unknown fields rejected, 2 MB and 1,000-event limits, duplicates removed by event ID, impossible timestamps refused.",
+  },
+  {
+    title: "We classify",
+    text: "kNN on sentence embeddings picks the topic. Fixed rules, not a model, decide sensitivity and severity, and secrets are masked again.",
+  },
+  {
+    title: "We publish aggregates",
+    text: "A count appears only if it covers at least 10 events and 3 different people. Smaller groups show as hidden.",
+  },
 ];
 
-const RULES = [
-  "A count is shown only if it covers at least 10 prompts from at least 3 different people. Otherwise it reads “insufficient data”.",
-  "If exactly one cell in a table is hidden, the next-smallest is hidden too, so it can’t be worked out by subtraction.",
-  "Filters that narrow the report below those thresholds are refused, not answered.",
-  "Secrets and personal data (API keys, passwords, emails, phone numbers, card numbers, SSNs, salaries) are masked before display.",
-  "CSV exports contain counts and flag metadata only, never prompt text.",
-  "Human corrections store labels only, never the prompt.",
-  "Paid LLM calls happen only after someone switches them on, and only redacted text is sent.",
+const PROTECTIONS = [
+  "No prompt text, user IDs or event IDs in any summary or export",
+  "Counts need ≥ 10 events and ≥ 3 distinct people, otherwise hidden",
+  "If one cell is hidden, the next-smallest is hidden too, so totals can't reveal it",
+  "Failed and blocked requests are counted but never classified",
+  "Real prompt text is refused today: only synthetic=true exports carry text",
+  "The gateway token lives in an environment variable and is never written to disk",
+  "Paid LLM calls run only after someone switches them on, and only redacted text is sent",
 ];
 
 const LIMITS = [
-  "All data is synthetic or public (Dolly-15k). No real employee prompts were used.",
-  "The benchmark is small: 70 prompts, 19 confidential. One prompt moves recall by about 5 points.",
-  "Risk rules catch secrets with a recognisable shape. Business secrets in plain prose (layoffs, acquisitions) are mostly missed.",
-  "Names are not detected, so they stay visible after redaction.",
-  "Similarity scores are not confidence. “Other” is a topic, not an uncertainty score.",
-  "Topic labels describe text. They can’t show whether someone did their job, broke a policy or leaked a secret, and must not be used to judge people.",
-  "Flags are event-level. In a small team, team plus time can point to a person, so access to flags should be narrower than access to aggregates.",
+  "Comparing overlapping tables (org-wide vs per-team, or consecutive weeks) can sometimes narrow down a hidden cell",
+  "Pseudonymous isn't anonymous: whoever runs the gateway can link user and team IDs to people",
+  "The flags list shows individual redacted prompts with team and time, so in small teams it can point to a person",
+  "Redaction quality depends on the gateway, and names are not detected or masked",
+  "Offline exports aren't authenticated, so we can't verify who produced a file",
 ];
 
 const RETENTION = [
-  ["Redacted prompt text", "Until classified, max 30 days"],
-  ["Event metadata + labels", "90 days"],
-  ["Published aggregates", "13 months"],
-  ["Gateway token", "Environment variable only, never written to disk"],
+  ["Redacted prompt text", "Until classified, max 30 days", "Deleted; labels kept"],
+  ["Event metadata and labels", "90 days", "Deleted"],
+  ["Published aggregates", "13 months", "Deleted"],
+  ["Consent records", "While active + 1 year after withdrawal", "Deleted"],
 ];
-
-function Stat({ label, value, hint }: { label: string; value: number; hint: string }) {
-  return (
-    <div className="panel p-4" title={hint}>
-      <p className="text-sm text-muted-foreground">{label}</p>
-      <p className="mt-1 text-3xl font-semibold tracking-tight tabular-nums">{value.toLocaleString()}</p>
-      <p className="mt-1 text-xs text-muted-foreground">{hint}</p>
-    </div>
-  );
-}
 
 export default function DataTrustPage() {
   const { data, isLoading, error } = useSources();
@@ -61,97 +61,60 @@ export default function DataTrustPage() {
       <PageHeader
         eyebrow="Governance"
         title="Data & Trust"
-        description="Where the data comes from, how it is classified, what is hidden, and what this tool can't tell you."
-      />
+        description="Where the data comes from, how it's handled, and what it can't tell you."
+      >
+        <span className="rounded-full border border-sev-medium/30 bg-sev-medium/10 px-2.5 py-1 text-xs text-sev-medium">
+          Synthetic data only
+        </span>
+      </PageHeader>
 
       <div className="grid gap-4">
-        {error ? (
-          <EmptyState variant="error" title="Couldn't load import stats" message={errorMessage(error)} />
-        ) : isLoading || !data ? (
-          <div className="grid grid-cols-2 gap-4 lg:grid-cols-5">
-            {Array.from({ length: 5 }).map((_, i) => (
-              <Skeleton key={i} className="h-28" />
-            ))}
-          </div>
-        ) : (
-          <>
-            <div className="grid grid-cols-2 gap-4 lg:grid-cols-5">
-              <Stat label="Received" value={data.received} hint="Events in the import" />
-              <Stat label="Duplicates dropped" value={data.deduped} hint="Repeats of the same event ID" />
-              <Stat label="Failed" value={data.failed} hint="Counted, never classified" />
-              <Stat label="Blocked" value={data.blocked} hint="Counted, never classified" />
-              <Stat label="Classified" value={data.classified} hint="Succeeded and had redacted text" />
-            </div>
+        <ChartCard title="Where the report's events came from" description="Counts only. No text or user IDs leave the importer.">
+          {error ? (
+            <EmptyState
+              variant="error"
+              title="Couldn't load import stats"
+              message={errorMessage(error)}
+            />
+          ) : isLoading || !data ? (
+            <Skeleton className="h-40" />
+          ) : (
+            <SourceStats sources={data} />
+          )}
+        </ChartCard>
 
-            <section aria-label="Gateway connection" className="panel flex flex-wrap items-center gap-4 p-5">
-              <span className="grid size-10 shrink-0 place-items-center rounded-lg bg-primary/10 text-primary">
-                <Database className="size-5" aria-hidden />
-              </span>
-              <div className="min-w-0 flex-1">
-                <h2 className="flex items-center gap-2 font-medium tracking-tight">
-                  <span className={data.gateway.connected ? "size-2 rounded-full bg-emerald-400" : "size-2 rounded-full bg-sev-medium"} aria-hidden />
-                  {data.gateway.connected ? "Connected to the Project 1 AI Gateway" : "Reading a gateway export file"}
-                </h2>
-                <p className="mt-0.5 text-sm text-muted-foreground">
-                  {data.gateway.connected
-                    ? `Live from ${data.gateway.url}.`
-                    : "The gateway's GET /events returns metadata only, so prompt text comes from its synthetic NDJSON export."}
-                  {data.gateway.lastImportAt && ` Export file dated ${new Date(data.gateway.lastImportAt).toLocaleString()}.`}
+        <ChartCard title="How a prompt is handled" description="From the gateway log to the weekly report.">
+          <ol className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+            {PIPELINE.map((step, i) => (
+              <li key={step.title} className="rounded-lg bg-white/[0.025] p-4">
+                <p className="flex items-center gap-2 font-medium">
+                  <span className="grid size-6 place-items-center rounded-full bg-primary/15 text-xs text-primary tabular-nums">
+                    {i + 1}
+                  </span>
+                  {step.title}
                 </p>
-              </div>
-              {data.project1DashboardUrl ? (
-                <a
-                  href={data.project1DashboardUrl}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="inline-flex items-center gap-1.5 rounded-lg border border-white/10 bg-white/5 px-3 py-1.5 text-sm hover:bg-white/10"
-                >
-                  Open Project 1 dashboard <ExternalLink className="size-3.5" aria-hidden />
-                </a>
-              ) : (
-                <span className="text-xs text-muted-foreground">Set PI_PROJECT1_URL on the backend to link the Project 1 dashboard.</span>
-              )}
-            </section>
-          </>
-        )}
-
-        <ChartCard title="How it works" description="From gateway log to weekly report.">
-          <ol className="grid gap-3 md:grid-cols-4">
-            {STEPS.map(({ icon: Icon, title, text }, i) => (
-              <li key={title} className="relative rounded-lg border border-white/5 bg-white/[0.02] p-4">
-                <div className="mb-2 flex items-center gap-2">
-                  <span className="grid size-7 place-items-center rounded-md bg-primary/10 text-primary">
-                    <Icon className="size-4" aria-hidden />
-                  </span>
-                  <span className="font-medium">
-                    {i + 1}. {title}
-                  </span>
-                </div>
-                <p className="text-sm text-muted-foreground">{text}</p>
-                {i < STEPS.length - 1 && (
-                  <ArrowRight className="absolute top-1/2 -right-3 hidden size-4 -translate-y-1/2 text-primary/60 md:block" aria-hidden />
-                )}
+                <p className="mt-2 text-sm text-muted-foreground">{step.text}</p>
               </li>
             ))}
           </ol>
         </ChartCard>
 
         <div className="grid gap-4 lg:grid-cols-2">
-          <ChartCard title="Privacy rules" description="Enforced in code and covered by tests.">
-            <ul className="grid gap-2 text-sm">
-              {RULES.map((r) => (
-                <li key={r} className="flex gap-2">
-                  <CircleCheck className="mt-0.5 size-4 shrink-0 text-emerald-400" aria-hidden />
-                  {r}
+          <ChartCard title="Protections in place" description="Enforced in code and covered by tests.">
+            <ul className="grid gap-2.5 text-sm">
+              {PROTECTIONS.map((p) => (
+                <li key={p} className="flex gap-2.5">
+                  <Check className="mt-0.5 size-4 shrink-0 text-emerald-400" aria-hidden />
+                  {p}
                 </li>
               ))}
             </ul>
           </ChartCard>
-          <ChartCard title="Known limits" description="Read these before trusting any number.">
-            <ul className="grid gap-2 text-sm">
+          <ChartCard title="Known limits" description="Gaps we know about and haven't closed.">
+            <ul className="grid gap-2.5 text-sm">
               {LIMITS.map((l) => (
-                <li key={l} className="flex gap-2">
-                  <Ban className="mt-0.5 size-4 shrink-0 text-sev-high" aria-hidden />
+                <li key={l} className="flex gap-2.5">
+                  <CircleAlert className="mt-0.5 size-4 shrink-0 text-sev-medium" aria-hidden />
                   {l}
                 </li>
               ))}
@@ -159,38 +122,54 @@ export default function DataTrustPage() {
           </ChartCard>
         </div>
 
-        <ChartCard title="Before real prompts" description="Proposed retention and consent requirements. Not yet in place; this build only uses synthetic and public data.">
-          <div className="grid gap-4 md:grid-cols-2">
-            <table className="w-full text-sm">
-              <caption className="sr-only">Proposed retention periods</caption>
-              <tbody>
-                {RETENTION.map(([what, when]) => (
-                  <tr key={what} className="border-b border-white/[0.04] last:border-0">
-                    <th scope="row" className="py-2 pr-4 text-left font-normal text-muted-foreground">
-                      {what}
-                    </th>
-                    <td className="py-2">{when}</td>
+        <div className="grid gap-4 lg:grid-cols-5">
+          <ChartCard
+            className="lg:col-span-3"
+            title="Retention (proposed)"
+            description="Team proposal, not legal advice. Must be confirmed before any real data is imported."
+          >
+            <div className="overflow-x-auto">
+              <table className="w-full min-w-[480px] text-sm">
+                <caption className="sr-only">Proposed retention periods</caption>
+                <thead>
+                  <tr className="border-b border-white/5 text-left text-xs text-muted-foreground">
+                    <th scope="col" className="py-2 pr-3 font-medium">Data</th>
+                    <th scope="col" className="px-3 py-2 font-medium">Kept for</th>
+                    <th scope="col" className="py-2 pl-3 font-medium">Then</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
-            <ul className="grid content-start gap-2 text-sm">
-              {[
-                "Opt-in consent per person, revocable any time, with no consequence for declining",
-                "Per-person deletion within 30 days, including the kNN index and review queue",
-                "A consent check at import before any real prompt text is accepted",
-              ].map((t) => (
-                <li key={t} className="flex gap-2 text-muted-foreground">
-                  <CircleDashed className="mt-0.5 size-4 shrink-0 text-primary/70" aria-hidden />
-                  {t}
-                </li>
-              ))}
-            </ul>
-          </div>
-          <p className="mt-3 flex items-center gap-1.5 text-xs text-muted-foreground">
-            <FileText className="size-3" aria-hidden /> Full details in docs/DATA_GOVERNANCE.md
-          </p>
-        </ChartCard>
+                </thead>
+                <tbody>
+                  {RETENTION.map(([what, keep, then]) => (
+                    <tr key={what} className="border-b border-white/[0.04] last:border-0">
+                      <th scope="row" className="py-2.5 pr-3 text-left font-normal">{what}</th>
+                      <td className="px-3 py-2.5">{keep}</td>
+                      <td className="py-2.5 pl-3 text-muted-foreground">{then}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+            <p className="mt-3 text-sm text-muted-foreground">
+              Required before real data, not built yet: anyone can ask for everything linked to their ID to be deleted,
+              including from the review queue and the kNN index, within 30 days.
+            </p>
+          </ChartCard>
+
+          <section aria-label="What this data can't tell you" className="panel flex flex-col gap-3 p-5 lg:col-span-2">
+            <h2 className="font-medium tracking-tight">What this can&apos;t tell you</h2>
+            <p className="text-sm text-muted-foreground">
+              Topic labels describe text. They can&apos;t show whether someone did their job, broke a policy or leaked a
+              secret.
+            </p>
+            <p className="text-sm text-muted-foreground">
+              This data must never be used for performance reviews, discipline or monitoring individuals. Before any
+              real text is collected, people must opt in, and declining must have no consequence.
+            </p>
+            <p className="text-sm text-muted-foreground">
+              &quot;Public&quot; means no sensitive pattern was found, not that the text is safe to share.
+            </p>
+          </section>
+        </div>
       </div>
     </div>
   );

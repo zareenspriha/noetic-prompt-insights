@@ -19,8 +19,8 @@ report per team, with small groups hidden for privacy.
 | Weekly report: top topics per team, trend, flags | Done | `report.py`, `/report/weekly`, Weekly Report page |
 | Frozen benchmark + metrics (macro-F1, confidential recall, confusion matrix) | Done | `data/benchmark.ndjson` (70 rows, SHA-256 locked by tests), `/metrics`, Model Comparison page |
 | Feedback buttons that correct a label (stretch) | Done | Review Queue → `/feedback`, joins the kNN index instantly, with undo |
-| LLM zero-shot vs kNN, with cost and agreement | **Code ready, needs API key** | `providers.py` + `python -m prompt_insights eval-provider`; not yet wired into `/classify` and `/metrics` |
-| Integration with Project 1's dashboard (stretch) | Partial | Reads the gateway's NDJSON export; set `PI_PROJECT1_URL` to link its dashboard |
+| LLM zero-shot vs kNN, with cost and agreement | **Wired, needs an API key** | `/classify` (live, opt-in), weekly report `model=llm` (saved batch labels), `eval-provider` on the benchmark; LLM row in `/metrics` still to add |
+| Integration with Project 1's dashboard (stretch) | Partial | Reads the gateway's NDJSON export; set `PI_PROJECT1_DASHBOARD_URL` to link its dashboard |
 
 ## Run it
 
@@ -97,13 +97,13 @@ gateway export (NDJSON) → validate + dedupe → drop failed/blocked → kNN to
 
 | Route | Returns |
 |---|---|
-| `GET /report/weekly?week=&team=&topic=&model=knn\|keyword` | KPIs, heatmap, trend, flags |
+| `GET /report/weekly?week=&team=&topic=&model=knn\|keyword\|llm` | KPIs, heatmap, trend, flags |
 | `POST /classify` | kNN prediction, risky spans, redacted text, neighbours |
 | `GET /review` · `POST /feedback` · `POST /feedback/undo` | Review queue and corrections |
 | `GET /metrics` | Benchmark scores, confusion matrices, agreement, benchmark hash |
 | `GET /sources` | Import counts (received, duplicates, failed, blocked, classified) |
 
-`model=llm` and `allowLlm: true` return **501** until the LLM is wired in.
+Without an LLM configured, `allowLlm: true` returns **503** and `model=llm` returns **409** with the command to run. No GET ever makes a paid call.
 
 ## Guardrails
 
@@ -118,17 +118,21 @@ gateway export (NDJSON) → validate + dedupe → drop failed/blocked → kNN to
 See [docs/DATA_GOVERNANCE.md](docs/DATA_GOVERNANCE.md) for consent, retention and deletion requirements before any
 real prompt is imported.
 
-## LLM comparison (next step, needs an API key)
+## LLM (needs an API key)
+
+Environment variables aren't loaded from `.env` automatically. Export them in the shell that runs the backend
+(names in `.env.example`):
 
 ```bash
-# .env is not loaded automatically; export the variables (names in .env.example)
 export ANTHROPIC_API_KEY=... ANTHROPIC_MODEL=... ANTHROPIC_PRICE_IN_PER_MTOK=... ANTHROPIC_PRICE_OUT_PER_MTOK=...
-python -m prompt_insights eval-provider --input data/benchmark.ndjson --mode anthropic --yes
+python -m prompt_insights serve                                        # Classify → "Also ask the LLM" now works
+python -m prompt_insights label-events --mode anthropic --yes          # one-off: LLM labels for the weekly report
+python -m prompt_insights eval-provider --input data/benchmark.ndjson --mode anthropic --yes   # benchmark scores
 ```
 
-This makes one paid call per benchmark row and writes `artifacts/provider-eval.json` with quality, measured
-tokens, latency and cost. Prices come from your provider's pricing page; cost stays `null` without them.
-Still to do: show this in `/metrics` and serve `allowLlm` in `/classify`.
+Each command with `--yes` makes paid calls (one per prompt) and nothing runs without it. Prices come from your
+provider's pricing page; cost stays `null` (unknown, not free) without them. `PI_LLM_PROVIDER` picks the provider
+when both keys are set. Still to do: add the benchmark LLM row and kNN-vs-LLM agreement to `/metrics`.
 
 ## Checks
 

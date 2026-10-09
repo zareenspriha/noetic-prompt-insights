@@ -53,10 +53,9 @@ async function http<T>(path: string, init?: RequestInit): Promise<T> {
   return res.json() as Promise<T>;
 }
 
-/** Human-readable error for EmptyState/toasts. 501 = feature needs setup (e.g. an LLM key). */
+/** Human-readable error for EmptyState/toasts: the backend's own `detail` (e.g. "No LLM is
+ *  configured on the server…"), or a hint to start the backend when it can't be reached. */
 export function errorMessage(error: unknown): string {
-  if (error instanceof ApiError && error.status === 501)
-    return `${error.message}. It needs an LLM API key on the backend; kNN works without one.`;
   return error instanceof Error ? error.message : String(error);
 }
 

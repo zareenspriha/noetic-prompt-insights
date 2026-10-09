@@ -59,7 +59,7 @@ export interface ClassifyResponse {
   riskSpans: RiskSpan[];
   textRedacted: string;
   /** Estimated LLM cost shown in the consent toggle before calling. */
-  llmCostEstimateUsd: number;
+  llmCostEstimateUsd: number | null;  // null = no provider or price configured (unknown, not free)
 }
 
 // ---------- GET /report/weekly?week=YYYY-Www&team=&topic=&model= ----------

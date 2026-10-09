@@ -21,7 +21,7 @@ from pydantic import BaseModel, ConfigDict, Field
 
 from pathlib import Path
 
-from . import bench, embed, report, risk
+from . import bench, embed, providers, report, risk
 from .core import TOPICS, classify as keyword_topic, classify_sensitivity, generate, split
 from .gateway import MAX_BYTES, parse_ndjson
 from .model import load_dolly
@@ -40,7 +40,6 @@ EVENTS = Path(
 ORIGINS = os.environ.get("PI_CORS_ORIGINS", "http://localhost:3000,http://127.0.0.1:3000")
 # Next.js moves to 3001, 3002, ... when 3000 is busy; any local port is still this machine.
 LOCAL_ORIGIN = r"http://(localhost|127\.0\.0\.1)(:\d+)?"
-PROJECT1_URL = os.environ.get("PI_PROJECT1_URL") or None
 
 
 @asynccontextmanager
@@ -123,20 +122,44 @@ def health():
     return dict(ok=True, modelVersion=MODEL_VERSION)
 
 
+def llm_prediction(text, mode):
+    """One paid call on redacted text. Like k-NN, the rules may raise its sensitivity and
+    always decide severity; the LLM's own answer is never lowered."""
+    try:
+        raw = providers.llm_prediction(text, mode, allow_live=True)
+    except ValueError:
+        raise HTTPException(502, "LLM request failed or returned an invalid answer") from None
+    judged = risk.assess(text, raw["topic"], raw["sensitivity"])
+    return dict(raw, sensitivity=judged["sensitivity"], severity=judged["severity"])
+
+
 @app.post("/classify")
 def classify(request: ClassifyRequest):
-    if request.allowLlm:
-        # Wired up in the LLM step; refusing beats silently returning k-NN only.
-        raise HTTPException(501, "LLM classification is not available yet")
+    mode = providers.configured_provider()
+    if request.allowLlm and mode is None:
+        raise HTTPException(
+            503, "No LLM is configured on the server; set a provider API key and model"
+        )
     knn, assessed, nearest = knn_prediction(request.text)
+    llm = llm_prediction(request.text, mode) if request.allowLlm else None
+    agree = (
+        None
+        if llm is None
+        else (llm["topic"], llm["sensitivity"])
+        == (
+            knn["topic"],
+            knn["sensitivity"],
+        )
+    )
     return dict(
         knn=knn,
-        llm=None,
-        agree=None,
-        needsReview=nearest < LOW_SIMILARITY,
+        llm=llm,
+        agree=agree,
+        needsReview=nearest < LOW_SIMILARITY or agree is False,
         riskSpans=assessed["riskSpans"],
         textRedacted=assessed["textRedacted"],
-        llmCostEstimateUsd=0.0,
+        # Labelled estimate; null when no provider or price is configured (unknown, not free).
+        llmCostEstimateUsd=providers.estimate_cost_usd(request.text, mode) if mode else None,
     )
 
 
@@ -144,7 +167,12 @@ def classify(request: ClassifyRequest):
 def events():
     """Gateway events to report on, validated against the shared gateway contract."""
     with EVENTS.open("rb") as stream:
-        return parse_ndjson(stream.read(MAX_BYTES + 1))
+        rows = parse_ndjson(stream.read(MAX_BYTES + 1))
+    LOADED["at"] = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+    return rows
+
+
+LOADED = {}  # when events() last read the export, for /sources
 
 
 def classifiable():
@@ -166,12 +194,37 @@ def event_vectors():
     return {e["event_id"]: v for e, v in zip(rows, vectors)}, per_event_ms
 
 
+LLM_LABELS = Path(os.environ.get("PI_LLM_LABELS", "artifacts/llm-event-labels.json"))
+NO_LLM_LABELS = (
+    "No complete LLM labels for these events. Run once, with consent to the paid calls: "
+    "python -m prompt_insights label-events --mode anthropic --yes"
+)
+
+
+def llm_labels():
+    """Saved batch labels from `label-events`. A GET never makes a paid call itself."""
+    try:
+        labels = json.loads(LLM_LABELS.read_text())["labels"]
+    except (OSError, ValueError, KeyError, TypeError):
+        raise HTTPException(409, NO_LLM_LABELS) from None
+    valid = isinstance(labels, dict) and all(
+        isinstance(label, dict)
+        and label.get("topic") in TOPICS
+        and label.get("sensitivity") in ("public", "internal", "confidential")
+        for label in labels.values()
+    )
+    if not valid or not set(classifiable()) <= set(labels):
+        raise HTTPException(409, NO_LLM_LABELS)
+    return labels
+
+
 def event_labels(model):
     """Topic + rule-based risk for every classifiable event. Human corrections win."""
     with LOCK:
         store = corrections()
         topic_model = index()["topic"]
         vectors, _ = event_vectors() if model == "knn" else ({}, 0)
+        saved = llm_labels() if model == "llm" else {}
         labels = {}
         for event_id, event in classifiable().items():
             text = event["prompt_redacted"]
@@ -185,6 +238,9 @@ def event_labels(model):
                     "public",
                     explained["nearest_similarity"],
                 )
+            elif model == "llm":
+                topic, sensitivity = saved[event_id]["topic"], saved[event_id]["sensitivity"]
+                nearest = None
             else:
                 topic, sensitivity, nearest = keyword_topic(text), "public", None
             assessed = risk.assess(text, topic, sensitivity)
@@ -209,9 +265,7 @@ def weekly_report(
 ):
     if topic is not None and topic not in TOPICS:
         raise HTTPException(422, "unknown topic")
-    if model == "llm":
-        raise HTTPException(501, "LLM labels are not available yet")
-    if model not in {"knn", "keyword"}:
+    if model not in {"knn", "keyword", "llm"}:
         raise HTTPException(422, "model must be knn, keyword or llm")
     labels = event_labels(model)
     try:
@@ -222,34 +276,6 @@ def weekly_report(
         raise HTTPException(422, str(error)) from None
     except LookupError as error:
         raise HTTPException(404, str(error)) from None
-
-
-@lru_cache(maxsize=1)
-def source_stats():
-    """Import counts for the Data & Trust page. Counts only: no text, user or event ids."""
-    received = sum(1 for line in EVENTS.read_bytes().splitlines() if line.strip())
-    rows = events()
-    status = {s: sum(e["status"] == s for e in rows) for s in ("failed", "blocked")}
-    imported_at = datetime.fromtimestamp(EVENTS.stat().st_mtime, timezone.utc)
-    return dict(
-        received=received,
-        deduped=received - len(rows),  # identical repeats of an event_id, dropped on import
-        failed=status["failed"],
-        blocked=status["blocked"],
-        classified=len(classifiable()),
-        # Reports read the NDJSON export; GET /events returns metadata only, never text.
-        gateway=dict(
-            connected=False,
-            url=None,
-            lastImportAt=imported_at.isoformat(timespec="seconds").replace("+00:00", "Z"),
-        ),
-        project1DashboardUrl=PROJECT1_URL,
-    )
-
-
-@app.get("/sources")
-def sources():
-    return source_stats()
 
 
 # ---------- review queue and human feedback ----------
@@ -413,3 +439,25 @@ def metrics():
 @app.get("/metrics")
 def get_metrics():
     return metrics()
+
+
+@app.get("/sources")
+def sources():
+    """Where the report's events came from: counts only, never text or user ids.
+
+    Events are read from an NDJSON export (PI_EVENTS), not pulled live from the gateway, so
+    `connected` is false. `received` counts non-blank lines before exact-duplicate removal.
+    """
+    rows = events()
+    with EVENTS.open("rb") as stream:
+        received = sum(1 for line in stream.read(MAX_BYTES + 1).splitlines() if line.strip())
+    status = {name: sum(1 for e in rows if e["status"] == name) for name in ("failed", "blocked")}
+    return dict(
+        received=received,
+        deduped=received - len(rows),
+        failed=status["failed"],
+        blocked=status["blocked"],
+        classified=len(classifiable()),
+        gateway=dict(connected=False, url=None, lastImportAt=LOADED.get("at")),
+        project1DashboardUrl=os.environ.get("PI_PROJECT1_DASHBOARD_URL") or None,
+    )

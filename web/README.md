@@ -17,7 +17,7 @@ Start the backend from the repo root with `python -m prompt_insights serve`.
 | Path | What |
 |---|---|
 | `types/api.ts` | Shared API contract with the backend. Change only in its own small PR. |
-| `lib/api.ts` | One hook per route (`useWeeklyReport`, `useClassify`, `useReviewQueue`, `useFeedback`, `useUndoFeedback`, `useMetrics`, `useSources`). Pages use these, never `fetch` directly. Show errors with `errorMessage(error)`: it explains 501 (needs an LLM key) and an unreachable backend. |
+| `lib/api.ts` | One hook per route (`useWeeklyReport`, `useClassify`, `useReviewQueue`, `useFeedback`, `useUndoFeedback`, `useMetrics`, `useSources`). Pages use these, never `fetch` directly. Show errors with `errorMessage(error)`: it shows the backend's own message, or how to start the backend if it can't be reached. |
 | `mocks/` | Fake seeded data matching `types/api.ts`. Numbers are placeholders, never pitch them. |
 | `lib/tokens.ts`, `app/globals.css` | Topic + severity colors, Noetic theme. |
 | `components/shared/` | KpiTile, SeverityBadge, TopicBadge, ChartCard, EmptyState, Skeleton, PageHeader. |
@@ -33,7 +33,7 @@ Start the backend from the repo root with `python -m prompt_insights serve`.
 | `/models` | Model Comparison | `GET /metrics` |
 | `/about` | Data & Trust | `GET /sources` |
 
-The LLM option (Weekly Report "Labels from", Classify "Also ask the LLM") returns a clear
-"needs an LLM API key" message until the backend has one.
+Without an LLM key, Classify's "Also ask the LLM" shows "No LLM is configured on the server", and the
+Weekly Report's "LLM zero-shot" labels show how to run `label-events` once.
 
 shadcn/ui is configured (`components.json`); add components with `npx shadcn@latest add button`.

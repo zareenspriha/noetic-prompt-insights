@@ -101,7 +101,7 @@ def test_report_endpoint_rejects_bad_queries(client):
     assert client.get("/report/weekly?week=2026-W99").status_code == 422
     assert client.get("/report/weekly?week=junk").status_code == 422
     assert client.get("/report/weekly?topic=nope").status_code == 422
-    assert client.get("/report/weekly?model=llm").status_code == 501
+    assert client.get("/report/weekly?model=llm").status_code == 409  # no saved labels
     assert client.get("/report/weekly?week=2020-W01").status_code == 404
     assert client.get("/report/weekly?model=keyword").status_code == 200
 
