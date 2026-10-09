@@ -28,6 +28,10 @@ def client(monkeypatch, tmp_path):
     api.PLAYGROUND.clear()
     for cached in CACHES:
         cached.cache_clear()
+    # Most tests are about answers, not access, so they see every department.
+    # test_admin_scope.py removes this override to test the real admin check.
+    api.app.dependency_overrides[security.require_admin] = lambda: security.ALL_TEAMS
     yield TestClient(api.app, headers={"Authorization": f"Bearer {REVIEWER_TOKEN}"})
+    api.app.dependency_overrides.clear()
     for cached in CACHES:
         cached.cache_clear()
