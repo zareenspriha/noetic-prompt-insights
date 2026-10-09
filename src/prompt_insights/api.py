@@ -21,7 +21,7 @@ from pydantic import BaseModel, ConfigDict, Field
 
 from pathlib import Path
 
-from . import bench, embed, providers, report, risk, security
+from . import ask, bench, embed, providers, report, risk, security
 from .core import TOPICS, classify as keyword_topic, classify_sensitivity, generate, split
 from .gateway import MAX_BYTES, parse_ndjson
 from .model import load_dolly
@@ -549,6 +549,21 @@ def _metrics(_llm_eval_stamp):
     extras = dict(p50_latency_ms=run["latencyMs"]["p50"], cost_per_1k_usd=run["costUsd"]["per1k"])
     version = ", ".join(run["modelVersions"]) or "llm"
     return bench.benchmark_metrics(models + [("llm", version, llm, extras)], compare=("knn", "llm"))
+
+
+@app.post("/ask")
+def ask_team(request: ask.AskRequest):
+    """Summary of what one team used AI for over the last N days. Teams only, never people.
+    The LLM runs only when allowLlm is true; otherwise the summary is rule-based."""
+    mode = providers.configured_provider()
+    labels = event_labels("knn")
+    teams = {e["team_id"] for e in classifiable().values()}
+    try:
+        return ask.answer(request, events(), lambda e: labels[e["event_id"]], teams, mode)
+    except ask.AskRefused as error:
+        raise HTTPException(422, str(error)) from None
+    except LookupError as error:
+        raise HTTPException(404, str(error)) from None
 
 
 @app.get("/metrics")

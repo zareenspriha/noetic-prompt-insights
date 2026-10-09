@@ -3,6 +3,8 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useDemoMode } from "@/lib/demo-mode";
 import type {
+  AskRequest,
+  AskResponse,
   ClassifyRequest,
   ClassifyResponse,
   Correction,
@@ -18,6 +20,7 @@ import classifyMock from "@/mocks/classify.json";
 import reviewMock from "@/mocks/review.json";
 import metricsMock from "@/mocks/metrics.json";
 import sourcesMock from "@/mocks/sources.json";
+import askMock from "@/mocks/ask.json";
 
 /** FastAPI base URL. Set NEXT_PUBLIC_API_URL in web/.env.local (default: local uvicorn). */
 const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://127.0.0.1:8001";
@@ -161,3 +164,31 @@ export function useSources() {
     queryFn: () => (demo ? mock<Sources>(sourcesMock) : http<Sources>("/sources")),
   });
 }
+
+/** POST /ask: a preset question about one team. The LLM runs only when allowLlm is true. */
+export function useAsk() {
+  const { demo } = useDemoMode();
+  return useMutation({
+    mutationFn: (body: AskRequest) =>
+      demo
+        ? mock<AskResponse>(
+            {
+              ...(body.allowLlm ? askMock.llm : askMock.rules),
+              team: body.team,
+              days: body.days,
+              question: body.question,
+              questionText: ASK_QUESTION_TEXT[body.question],
+            },
+            body.allowLlm ? 900 : 350,
+          )
+        : http<AskResponse>("/ask", { method: "POST", body: JSON.stringify(body) }),
+  });
+}
+
+/** Same wording as QUESTIONS in src/prompt_insights/ask.py. */
+export const ASK_QUESTION_TEXT: Record<AskRequest["question"], string> = {
+  overview: "What was this team working on?",
+  problems: "What problems did this team run into?",
+  risks: "Did this team put anything sensitive or risky into AI tools?",
+  support: "How can I help this team use AI better?",
+};

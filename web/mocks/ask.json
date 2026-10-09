@@ -1,0 +1,147 @@
+{
+  "rules": {
+    "team": "engineering",
+    "days": 5,
+    "question": "overview",
+    "questionText": "What was this team working on?",
+    "start": "2026-10-04T23:44:00Z",
+    "asOf": "2026-10-09T23:44:00Z",
+    "prompts": 71,
+    "topics": [
+      {
+        "topic": "coding",
+        "count": 42
+      },
+      {
+        "topic": "writing",
+        "count": null
+      },
+      {
+        "topic": "data_analysis",
+        "count": 14
+      },
+      {
+        "topic": "other",
+        "count": null
+      }
+    ],
+    "severity": {
+      "low": 68,
+      "medium": 0,
+      "high": 0,
+      "critical": 3
+    },
+    "problemPrompts": 4,
+    "problemsByTopic": [],
+    "reasons": [
+      {
+        "reason": "API key pattern",
+        "count": 2
+      },
+      {
+        "reason": "password or login",
+        "count": 1
+      }
+    ],
+    "minGroupSize": 10,
+    "summary": {
+      "overview": "Over the last 5 days, engineering sent 71 prompts to AI tools, mostly for coding (59%), data analysis (20%). 3 were flagged as sensitive.",
+      "themes": [
+        "Coding: 42 prompts.",
+        "Data analysis: 14 prompts.",
+        "2 smaller topic(s) hidden for privacy."
+      ],
+      "problems": [
+        "4 prompts mention errors, bugs or something not working."
+      ],
+      "risks": [
+        "3 critical flag(s): credentials or keys pasted into prompts.",
+        "Most common reason: API key pattern (2).",
+        "Most common reason: password or login (1)."
+      ],
+      "suggestions": [
+        "Remind the team to keep keys and passwords out of AI prompts; rotate any that were pasted.",
+        "Most use is coding: an approved coding assistant setup and secret scanning before prompts would help."
+      ]
+    },
+    "source": "rules",
+    "notice": null,
+    "modelVersion": "MOCK rules",
+    "latencyMs": null,
+    "costUsd": null,
+    "inputTokens": null,
+    "outputTokens": null
+  },
+  "llm": {
+    "team": "engineering",
+    "days": 5,
+    "question": "overview",
+    "questionText": "What was this team working on?",
+    "start": "2026-10-04T23:44:00Z",
+    "asOf": "2026-10-09T23:44:00Z",
+    "prompts": 71,
+    "topics": [
+      {
+        "topic": "coding",
+        "count": 42
+      },
+      {
+        "topic": "writing",
+        "count": null
+      },
+      {
+        "topic": "data_analysis",
+        "count": 14
+      },
+      {
+        "topic": "other",
+        "count": null
+      }
+    ],
+    "severity": {
+      "low": 68,
+      "medium": 0,
+      "high": 0,
+      "critical": 3
+    },
+    "problemPrompts": 4,
+    "problemsByTopic": [],
+    "reasons": [
+      {
+        "reason": "API key pattern",
+        "count": 2
+      },
+      {
+        "reason": "password or login",
+        "count": 1
+      }
+    ],
+    "minGroupSize": 10,
+    "summary": {
+      "overview": "MOCK: Engineering mostly used AI to debug and review code this period, with some data analysis on service logs. A few prompts included credentials, which is the main thing to follow up on.",
+      "themes": [
+        "MOCK: Debugging failing scripts and API clients",
+        "MOCK: Writing and reviewing small utility functions",
+        "MOCK: Summarizing server logs and metrics"
+      ],
+      "problems": [
+        "MOCK: Repeated questions about a deploy script that errors out",
+        "MOCK: Requests timing out against an internal service"
+      ],
+      "risks": [
+        "MOCK: API keys and a password were pasted into prompts (OWASP LLM02)"
+      ],
+      "suggestions": [
+        "MOCK: Rotate the exposed keys and add secret scanning before prompts leave the network",
+        "MOCK: Check whether the deploy script failures share a root cause"
+      ]
+    },
+    "source": "llm",
+    "notice": null,
+    "modelVersion": "MOCK llm-zero-shot",
+    "latencyMs": 2140.0,
+    "costUsd": 0.0031,
+    "inputTokens": 2860,
+    "outputTokens": 310
+  }
+}
