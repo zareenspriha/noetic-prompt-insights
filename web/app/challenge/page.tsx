@@ -6,14 +6,17 @@ import { useState } from "react";
 import { Download, RotateCcw } from "lucide-react";
 import { errorMessage, useClassify } from "@/lib/api";
 import { useDemoMode } from "@/lib/demo-mode";
-import { SECRETS, judge, score, secretById, toTestCases, type Attempt, type SecretId } from "@/lib/challenge";
+import { SECRETS, judge, score, scoreByOwasp, scoreByTopic, secretById, toTestCases, type Attempt, type SecretId } from "@/lib/challenge";
 import { cn } from "@/lib/utils";
+import type { ClassifyResponse } from "@/types/api";
 import { PageHeader } from "@/components/shared/page-header";
 import { ChartCard } from "@/components/shared/chart-card";
 import { EmptyState } from "@/components/shared/empty-state";
 import { SeverityBadge } from "@/components/shared/severity-badge";
 import { TopicBadge } from "@/components/shared/topic-badge";
+import { TOPIC_LABEL } from "@/lib/tokens";
 import { RedactedText } from "@/components/classify/redacted-text";
+import { OwaspBadge } from "@/components/shared/owasp-badge";
 
 const pill = (on: boolean) =>
   cn(
@@ -38,6 +41,30 @@ function Tile({ label, value, note, tone }: { label: string; value: string | num
   );
 }
 
+/** The usage side of the same call: what the prompt was about, the label the weekly report counts. */
+function TopicVerdict({ result }: { result: ClassifyResponse }) {
+  const nearest = result.knn.neighbors[0];
+  return (
+    <div aria-label="Topic" className="rounded-lg bg-muted px-3.5 py-3">
+      <p className="flex flex-wrap items-center gap-2 text-sm">
+        <span className="text-muted-foreground">What it&apos;s about</span>
+        <TopicBadge topic={result.knn.topic} />
+      </p>
+      <p className="mt-1.5 text-sm text-muted-foreground">
+        {result.needsReview
+          ? "Low similarity to every labelled example, so this would go to the review queue before it counts."
+          : `Caught or not, it counts toward ${TOPIC_LABEL[result.knn.topic]} in the weekly report.`}
+        {nearest && (
+          <>
+            {" "}
+            Closest example ({nearest.similarity.toFixed(2)} similarity): <q className="font-serif">{nearest.textRedacted}</q>
+          </>
+        )}
+      </p>
+    </div>
+  );
+}
+
 export default function ChallengePage() {
   const { demo } = useDemoMode();
   const classify = useClassify();
@@ -47,6 +74,8 @@ export default function ChallengePage() {
   const latest = attempts[0];
   const s = score(attempts);
   const escapes = attempts.filter((a) => !a.caught);
+  const byOwasp = scoreByOwasp(attempts);
+  const byTopic = scoreByTopic(attempts);
 
   const tryIt = () => {
     if (!text.trim() || demo || classify.isPending) return;
@@ -100,6 +129,33 @@ export default function ChallengePage() {
           />
         </section>
 
+        {attempts.length > 0 && (
+          <section aria-label="Catch rate by category" className="panel grid gap-2 px-4 py-3 text-sm">
+            <div className="flex flex-wrap items-center gap-x-5 gap-y-2">
+              <span className="w-44 text-muted-foreground">By topic of the prompt</span>
+              {byTopic.map((c) => (
+                <span key={c.key} className="inline-flex items-center gap-2">
+                  <TopicBadge topic={c.key} />
+                  <span className="tabular-nums">
+                    {c.caught} of {c.total} caught
+                  </span>
+                </span>
+              ))}
+            </div>
+            <div className="flex flex-wrap items-center gap-x-5 gap-y-2">
+              <span className="w-44 text-muted-foreground">By OWASP LLM Top 10</span>
+              {byOwasp.map((c) => (
+                <span key={c.key} className="inline-flex items-center gap-2">
+                  <OwaspBadge id={c.key} />
+                  <span className="tabular-nums">
+                    {c.caught} of {c.total} caught
+                  </span>
+                </span>
+              ))}
+            </div>
+          </section>
+        )}
+
         <div className="flex flex-wrap items-start gap-4">
           <section aria-label="Your attempt" className="panel flex min-w-0 flex-[1_1_420px] flex-col gap-4 p-5">
             <fieldset>
@@ -111,7 +167,10 @@ export default function ChallengePage() {
                   </button>
                 ))}
               </div>
-              <p className="mt-2.5 text-sm text-muted-foreground">{secretById(secret).hint}</p>
+              <p className="mt-2.5 flex flex-wrap items-center gap-2 text-sm text-muted-foreground">
+                Tests <OwaspBadge id={secretById(secret).owasp} full />
+              </p>
+              <p className="mt-1.5 text-sm text-muted-foreground">{secretById(secret).hint}</p>
             </fieldset>
 
             <div className="flex flex-col gap-2">
@@ -168,9 +227,11 @@ export default function ChallengePage() {
                   <h2 className="mb-2 text-lg">What the detector stored</h2>
                   <RedactedText text={latest.result.textRedacted} spans={latest.result.riskSpans} />
                 </div>
+                <TopicVerdict result={latest.result} />
                 <div className="flex flex-wrap items-center gap-2 text-sm">
-                  <span className="text-muted-foreground">Labelled as</span>
-                  <TopicBadge topic={latest.result.knn.topic} />
+                  <span className="text-muted-foreground">Attempted</span>
+                  <OwaspBadge id={secretById(latest.secret).owasp} />
+                  <span className="text-muted-foreground">· Rated</span>
                   <span className="capitalize">{latest.result.knn.sensitivity}</span>
                   <SeverityBadge severity={latest.result.knn.severity} />
                 </div>
@@ -198,6 +259,8 @@ export default function ChallengePage() {
               {escapes.map((a) => (
                 <li key={a.id} className="flex flex-wrap items-baseline gap-3 rounded-lg bg-muted px-3.5 py-2.5">
                   <span className="highlighter shrink-0 text-sm">{secretById(a.secret).label}</span>
+                  <OwaspBadge id={secretById(a.secret).owasp} className="shrink-0" />
+                  <TopicBadge topic={a.result.knn.topic} className="shrink-0" />
                   <span className="min-w-0 flex-1 font-mono text-[13px] break-words">{a.text}</span>
                 </li>
               ))}

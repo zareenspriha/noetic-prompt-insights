@@ -1,8 +1,9 @@
 import pytest
 from fastapi.testclient import TestClient
-from prompt_insights import api, embed
+from prompt_insights import api, embed, security
 from test_model import fake_encode
 
+REVIEWER_TOKEN = "test-reviewer-token-0123456789"
 CACHES = (
     api.index,
     api.events,
@@ -14,16 +15,19 @@ CACHES = (
 
 @pytest.fixture
 def client(monkeypatch, tmp_path):
-    """API client with the offline fake encoder and a throwaway corrections file."""
+    """API client with the offline fake encoder, throwaway files and a reviewer's token."""
     monkeypatch.setattr(embed, "encode", fake_encode)
     monkeypatch.setattr(api, "CORRECTIONS", tmp_path / "corrections.json")
     monkeypatch.setattr(api, "LLM_LABELS", tmp_path / "llm-event-labels.json")
     monkeypatch.setattr(api, "LLM_EVAL", tmp_path / "provider-eval-benchmark.json")
-    for name in ("PI_LLM_PROVIDER", "OPENAI_API_KEY", "ANTHROPIC_API_KEY"):
+    monkeypatch.setattr(security, "AUDIT", tmp_path / "audit.ndjson")
+    monkeypatch.setenv("PI_REVIEWER_TOKENS", f"tester:{REVIEWER_TOKEN}")
+    for name in ("PI_LLM_PROVIDER", "OPENAI_API_KEY", "ANTHROPIC_API_KEY", "PI_ENV"):
         monkeypatch.delenv(name, raising=False)
     api.UNDO.clear()
+    api.PLAYGROUND.clear()
     for cached in CACHES:
         cached.cache_clear()
-    yield TestClient(api.app)
+    yield TestClient(api.app, headers={"Authorization": f"Bearer {REVIEWER_TOKEN}"})
     for cached in CACHES:
         cached.cache_clear()
