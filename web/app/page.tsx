@@ -6,7 +6,6 @@ import { AlertOctagon, FileDown, Lock, MessageSquareText, Printer, Sparkles } fr
 import { errorMessage, useWeeklyReport } from "@/lib/api";
 import { exportReportCsv } from "@/lib/export";
 import { TOPIC_LABEL } from "@/lib/tokens";
-import { SyntheticStamp } from "@/components/shared/synthetic-stamp";
 import { KpiTile } from "@/components/shared/kpi-tile";
 import { PageHeader } from "@/components/shared/page-header";
 import { Skeleton } from "@/components/shared/skeleton";
@@ -61,9 +60,6 @@ export default function WeeklyReportPage() {
         title="What people used AI for this week"
         description="Topics and risk across every team, from the AI gateway log. Secrets are blacked out and groups under ten prompts are hidden."
       >
-        {data?.synthetic && (
-          <SyntheticStamp />
-        )}
         <button type="button" className={btn} disabled={!data} onClick={() => data && exportReportCsv(data, flags)}>
           <FileDown className="size-4" aria-hidden /> CSV
         </button>

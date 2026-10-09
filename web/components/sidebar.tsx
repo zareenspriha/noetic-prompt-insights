@@ -29,9 +29,8 @@ export function Sidebar() {
   return (
     <aside className="sticky top-0 z-10 flex shrink-0 flex-col gap-5 border-b border-border bg-secondary px-4 py-4 md:h-screen md:w-64 md:border-b-0 md:border-r md:py-7">
       <Link href="/" className="px-2 text-foreground no-underline">
-        {/* The wordmark carries the product's own idea: part of it is blacked out. */}
         <span className="block font-serif text-2xl font-medium tracking-tight">
-          Prompt <span className="redaction mx-0 text-ink">Insig</span>hts
+          Prompt Insights
         </span>
         <span className="mt-0.5 block text-[13px] text-muted-foreground">What people ask AI, minus the secrets</span>
       </Link>
