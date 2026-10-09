@@ -2,7 +2,7 @@
 
 // Team insights: an admin picks a preset question, a team and a time range, and gets a short
 // answer plus a visual that fits the question. Presets only, so nobody can ask about a person.
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { CalendarDays, Layers, LifeBuoy, ShieldAlert, Sparkles, Wrench, type LucideIcon } from "lucide-react";
 import { errorMessage, useAsk, useWeeklyReport } from "@/lib/api";
 import { cn } from "@/lib/utils";
@@ -45,16 +45,10 @@ export default function InsightsPage() {
   const [question, setQuestion] = useState<AskQuestion>("overview");
   const [team, setTeam] = useState<string | null>(null);
   const [days, setDays] = useState(5);
-  const [allowLlm, setAllowLlm] = useState(false);
   const chosenTeam = team ?? teams[0] ?? null;
-  const run = () => chosenTeam && ask.mutate({ question, team: chosenTeam, days, allowLlm });
-
-  // Without the LLM the answer is free and instant, so update it as soon as a choice changes.
-  // With the LLM on, nothing runs until the admin presses the button (paid call).
-  const { mutate } = ask;
-  useEffect(() => {
-    if (!allowLlm && chosenTeam) mutate({ question, team: chosenTeam, days, allowLlm: false });
-  }, [question, chosenTeam, days, allowLlm, mutate]);
+  // The LLM writes every answer, and only when the admin presses Get answer.
+  // If the server has no LLM configured, the backend returns its rule-based answer with a note.
+  const run = () => chosenTeam && ask.mutate({ question, team: chosenTeam, days, allowLlm: true });
 
   const result = ask.data;
   const stale =
@@ -122,36 +116,15 @@ export default function InsightsPage() {
           </div>
         </div>
 
-        <div className="flex flex-wrap items-center justify-between gap-3 border-t border-border pt-4">
-          <label className="flex items-center gap-3 text-sm">
-            <button
-              type="button"
-              role="switch"
-              aria-checked={allowLlm}
-              aria-label="Write the answer with the LLM"
-              onClick={() => setAllowLlm(!allowLlm)}
-              className={cn("relative h-6 w-11 shrink-0 rounded-full transition-colors", allowLlm ? "bg-primary" : "bg-input")}
-            >
-              <span className={cn("absolute top-[3px] left-[3px] size-[18px] rounded-full bg-white shadow transition-transform", allowLlm && "translate-x-5")} />
-            </button>
-            <span className="leading-snug">
-              <span className="font-medium">Write the answer with the LLM</span>{" "}
-              <span className="text-muted-foreground">(paid API call)</span>
-              <span className="block text-muted-foreground">
-                {allowLlm ? "Only redacted prompts and counts are sent. Press the button to run it." : "Off: a free rule-based answer updates as you choose."}
-              </span>
-            </span>
-          </label>
-          {allowLlm && (
-            <button
-              type="button"
-              onClick={run}
-              disabled={!chosenTeam || ask.isPending}
-              className="inline-flex min-h-11 items-center gap-2 rounded-lg bg-primary px-5 text-sm font-semibold text-primary-foreground hover:bg-primary/90 disabled:opacity-50"
-            >
-              <Sparkles className="size-4" aria-hidden /> {ask.isPending ? "Writing…" : "Get answer"}
-            </button>
-          )}
+        <div className="flex justify-end border-t border-border pt-4">
+          <button
+            type="button"
+            onClick={run}
+            disabled={!chosenTeam || ask.isPending}
+            className="inline-flex min-h-11 items-center gap-2 rounded-lg bg-primary px-5 text-sm font-semibold text-primary-foreground hover:bg-primary/90 disabled:opacity-50"
+          >
+            <Sparkles className="size-4" aria-hidden /> {ask.isPending ? "Writing…" : "Get answer"}
+          </button>
         </div>
       </section>
 
@@ -164,7 +137,7 @@ export default function InsightsPage() {
             <Skeleton className="h-80 lg:col-span-2" />
           </div>
         ) : !result ? (
-          <EmptyState title="No answer yet" message={allowLlm ? "Press Get answer." : "Pick a department to start."} />
+          <EmptyState title="No answer yet" message="Pick a question, a department and a time range, then press Get answer." />
         ) : (
           <Answer result={result} stale={stale || ask.isPending} />
         )}
