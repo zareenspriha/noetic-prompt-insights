@@ -3,13 +3,19 @@
 import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { BarChart3, FlaskConical, Inbox, Scale, ShieldCheck, Swords } from "lucide-react";
+import { BarChart3, FlaskConical, Inbox, MessagesSquare, Scale, ShieldCheck, Swords } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { DemoToggle } from "@/components/demo-toggle";
 import { useReviewQueue } from "@/lib/api";
 
 const GROUPS = [
-  { label: "Insights", items: [{ href: "/", label: "Weekly report", icon: BarChart3 }] },
+  {
+    label: "Insights",
+    items: [
+      { href: "/insights", label: "Team insights", icon: MessagesSquare },
+      { href: "/", label: "Weekly report", icon: BarChart3 },
+    ],
+  },
   {
     label: "Classifier",
     items: [
