@@ -6,7 +6,7 @@ import { useState } from "react";
 import { Download, RotateCcw } from "lucide-react";
 import { errorMessage, useClassify } from "@/lib/api";
 import { useDemoMode } from "@/lib/demo-mode";
-import { SECRETS, judge, score, secretById, toTestCases, type Attempt, type SecretId } from "@/lib/challenge";
+import { SECRETS, judge, score, scoreByOwasp, secretById, toTestCases, type Attempt, type SecretId } from "@/lib/challenge";
 import { cn } from "@/lib/utils";
 import { PageHeader } from "@/components/shared/page-header";
 import { ChartCard } from "@/components/shared/chart-card";
@@ -14,6 +14,7 @@ import { EmptyState } from "@/components/shared/empty-state";
 import { SeverityBadge } from "@/components/shared/severity-badge";
 import { TopicBadge } from "@/components/shared/topic-badge";
 import { RedactedText } from "@/components/classify/redacted-text";
+import { OwaspBadge } from "@/components/shared/owasp-badge";
 
 const pill = (on: boolean) =>
   cn(
@@ -47,6 +48,7 @@ export default function ChallengePage() {
   const latest = attempts[0];
   const s = score(attempts);
   const escapes = attempts.filter((a) => !a.caught);
+  const byOwasp = scoreByOwasp(attempts);
 
   const tryIt = () => {
     if (!text.trim() || demo || classify.isPending) return;
@@ -100,6 +102,20 @@ export default function ChallengePage() {
           />
         </section>
 
+        {byOwasp.length > 0 && (
+          <section aria-label="Catch rate by OWASP category" className="panel flex flex-wrap items-center gap-x-5 gap-y-2 px-4 py-3 text-sm">
+            <span className="text-muted-foreground">By OWASP LLM Top 10 category</span>
+            {byOwasp.map((c) => (
+              <span key={c.owasp} className="inline-flex items-center gap-2">
+                <OwaspBadge id={c.owasp} />
+                <span className="tabular-nums">
+                  {c.caught} of {c.total} caught
+                </span>
+              </span>
+            ))}
+          </section>
+        )}
+
         <div className="flex flex-wrap items-start gap-4">
           <section aria-label="Your attempt" className="panel flex min-w-0 flex-[1_1_420px] flex-col gap-4 p-5">
             <fieldset>
@@ -111,7 +127,10 @@ export default function ChallengePage() {
                   </button>
                 ))}
               </div>
-              <p className="mt-2.5 text-sm text-muted-foreground">{secretById(secret).hint}</p>
+              <p className="mt-2.5 flex flex-wrap items-center gap-2 text-sm text-muted-foreground">
+                Tests <OwaspBadge id={secretById(secret).owasp} full />
+              </p>
+              <p className="mt-1.5 text-sm text-muted-foreground">{secretById(secret).hint}</p>
             </fieldset>
 
             <div className="flex flex-col gap-2">
@@ -169,7 +188,9 @@ export default function ChallengePage() {
                   <RedactedText text={latest.result.textRedacted} spans={latest.result.riskSpans} />
                 </div>
                 <div className="flex flex-wrap items-center gap-2 text-sm">
-                  <span className="text-muted-foreground">Labelled as</span>
+                  <span className="text-muted-foreground">Attempted</span>
+                  <OwaspBadge id={secretById(latest.secret).owasp} />
+                  <span className="text-muted-foreground">· Labelled as</span>
                   <TopicBadge topic={latest.result.knn.topic} />
                   <span className="capitalize">{latest.result.knn.sensitivity}</span>
                   <SeverityBadge severity={latest.result.knn.severity} />
@@ -198,6 +219,7 @@ export default function ChallengePage() {
               {escapes.map((a) => (
                 <li key={a.id} className="flex flex-wrap items-baseline gap-3 rounded-lg bg-muted px-3.5 py-2.5">
                   <span className="highlighter shrink-0 text-sm">{secretById(a.secret).label}</span>
+                  <OwaspBadge id={secretById(a.secret).owasp} className="shrink-0" />
                   <span className="min-w-0 flex-1 font-mono text-[13px] break-words">{a.text}</span>
                 </li>
               ))}
