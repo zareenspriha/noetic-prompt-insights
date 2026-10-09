@@ -44,9 +44,9 @@ export function ConfusionMatrix({
                       style={{
                         backgroundColor: n
                           ? `color-mix(in srgb, var(--primary) ${Math.round(12 + share * 68)}%, var(--card))`
-                          : "rgb(255 255 255 / 0.025)",
+                          : "rgb(31 35 55 / 0.025)",
                         color: share > 0.5 ? "var(--primary-foreground)" : "var(--foreground)",
-                        outline: correct ? "1px solid rgb(255 255 255 / 0.25)" : undefined,
+                        outline: correct ? "1px solid rgb(31 35 55 / 0.25)" : undefined,
                         outlineOffset: -1,
                       }}
                     >

@@ -10,6 +10,7 @@ import {
   useTable,
 } from "@tanstack/react-table";
 import { ArrowDown, ArrowUp, ArrowUpDown } from "lucide-react";
+import { Masked } from "@/components/shared/masked";
 import { SeverityBadge } from "@/components/shared/severity-badge";
 import { TOPIC_LABEL } from "@/lib/tokens";
 import { SEVERITIES, type Flag } from "@/types/api";
@@ -47,13 +48,17 @@ const columns = helper.columns([
     sortFn: "alphanumeric",
     cell: (info) => TOPIC_LABEL[info.getValue()],
   }),
-  helper.accessor("reason", { header: "Reason", sortFn: "alphanumeric" }),
+  helper.accessor("reason", {
+    header: "Why it was flagged",
+    sortFn: "alphanumeric",
+    cell: (info) => <span className="highlighter">{info.getValue()}</span>,
+  }),
   helper.accessor("textRedacted", {
-    header: "Prompt (redacted)",
+    header: "Prompt, as stored",
     enableSorting: false,
     cell: (info) => (
-      <span className="block max-w-[28rem] truncate font-mono text-xs text-foreground/80" title={info.getValue()}>
-        {info.getValue()}
+      <span className="block max-w-[30rem] truncate font-serif text-[15px] text-foreground" title={info.getValue()}>
+        <Masked text={info.getValue()} />
       </span>
     ),
   }),
@@ -73,7 +78,7 @@ export function FlagsTable({ flags }: { flags: Flag[] }) {
         <caption className="sr-only">Prompts flagged as sensitive this week, with redacted text</caption>
         <thead>
           {table.getHeaderGroups().map((group) => (
-            <tr key={group.id} className="border-b border-white/5">
+            <tr key={group.id} className="border-b border-foreground/5">
               {group.headers.map((header) => {
                 const sorted = header.column.getIsSorted();
                 const canSort = header.column.getCanSort();
@@ -105,7 +110,7 @@ export function FlagsTable({ flags }: { flags: Flag[] }) {
         </thead>
         <tbody>
           {table.getRowModel().rows.map((row) => (
-            <tr key={row.id} className="border-b border-white/[0.04] last:border-0 hover:bg-white/[0.02]">
+            <tr key={row.id} className="border-b border-foreground/[0.04] last:border-0 hover:bg-foreground/[0.02]">
               {row.getAllCells().map((cell) => (
                 <td key={cell.id} className="px-3 py-2.5 align-middle whitespace-nowrap">
                   <table.FlexRender cell={cell} />

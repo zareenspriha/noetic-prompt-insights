@@ -74,15 +74,16 @@ export function TeamTopicHeatmap({
                         className={cn(
                           "grid h-11 w-full place-items-center rounded-md text-xs tabular-nums transition-[opacity,box-shadow] hover:ring-1 hover:ring-primary/60 focus-visible:ring-2 focus-visible:ring-ring",
                           anySel && !isSel && "opacity-30",
-                          n === null && "text-muted-foreground/70",
+                          n === null && "text-muted-foreground",
+                          n !== null && n / max > 0.45 && "font-semibold text-white",
                         )}
                         style={
                           n === null
                             ? {
                                 backgroundImage:
-                                  "repeating-linear-gradient(135deg, rgb(255 255 255 / 0.04) 0 4px, transparent 4px 8px)",
+                                  "repeating-linear-gradient(135deg, #f1eff6 0 5px, #e2dfec 5px 7px)",
                               }
-                            : { background: `rgb(58 168 232 / ${0.08 + 0.62 * (n / max)})` }
+                            : { background: `rgb(31 110 158 / ${0.14 + 0.86 * (n / max)})` }
                         }
                       >
                         {n === null ? `<${minGroupSize}` : n}
@@ -100,7 +101,7 @@ export function TeamTopicHeatmap({
           Fewer
           <span
             className="h-2 w-24 rounded-full"
-            style={{ background: "linear-gradient(90deg, rgb(58 168 232 / 0.08), rgb(58 168 232 / 0.7))" }}
+            style={{ background: "linear-gradient(90deg, rgb(31 110 158 / 0.14), rgb(31 110 158 / 1))" }}
           />
           More
         </span>
@@ -108,7 +109,7 @@ export function TeamTopicHeatmap({
           <span
             className="size-3 rounded-sm"
             style={{
-              backgroundImage: "repeating-linear-gradient(135deg, rgb(255 255 255 / 0.15) 0 2px, transparent 2px 4px)",
+              backgroundImage: "repeating-linear-gradient(135deg, #f1eff6 0 2px, #cfcbe0 2px 4px)",
             }}
           />
           Insufficient data (under {minGroupSize} prompts, hidden for privacy)

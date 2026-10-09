@@ -44,6 +44,8 @@ export function KpiTile({
           : `+${format(value)} vs 0 last week`
         : `${(Math.abs(delta) * 100).toFixed(0)}% vs last week`;
 
+  const sparkId = `spark-${label.replace(/[^a-z0-9]+/gi, "-")}`;
+
   return (
     <div className={cn("panel relative min-w-0 overflow-hidden p-4", spark && spark.length > 1 && "pb-14")}>
       <div className="flex items-center justify-between">
@@ -54,13 +56,17 @@ export function KpiTile({
           </span>
         )}
       </div>
-      <p className="mt-2 truncate text-2xl font-semibold tracking-tight tabular-nums sm:text-3xl">{display ?? format(value)}</p>
+      <p className={cn(
+          "mt-2 truncate font-serif font-medium tracking-tight tabular-nums",
+          display ? "text-2xl leading-[1.35] sm:text-[28px]" : "text-3xl sm:text-[38px]",
+        )}
+        title={display}>{display ?? format(value)}</p>
       <span
         className={cn(
           "mt-2 inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs",
-          good === true && "bg-emerald-400/10 text-emerald-400",
+          good === true && "bg-good/10 text-good",
           good === false && "bg-sev-critical/10 text-sev-critical",
-          good === null && "bg-white/5 text-muted-foreground",
+          good === null && "bg-foreground/5 text-muted-foreground",
         )}
       >
         <Arrow className="size-3.5" aria-hidden />
@@ -71,12 +77,12 @@ export function KpiTile({
           <ResponsiveContainer width="100%" height="100%">
             <AreaChart data={spark.map((v, i) => ({ i, v }))} margin={{ top: 0, right: 0, bottom: 0, left: 0 }}>
               <defs>
-                <linearGradient id={`spark-${label}`} x1="0" y1="0" x2="0" y2="1">
+                <linearGradient id={sparkId} x1="0" y1="0" x2="0" y2="1">
                   <stop offset="0" stopColor="var(--primary)" stopOpacity={0.35} />
                   <stop offset="1" stopColor="var(--primary)" stopOpacity={0} />
                 </linearGradient>
               </defs>
-              <Area type="monotone" dataKey="v" stroke="var(--primary)" strokeWidth={1.5} fill={`url(#spark-${label})`} isAnimationActive={false} />
+              <Area type="monotone" dataKey="v" stroke="var(--primary)" strokeWidth={1.5} fill={`url(#${sparkId})`} isAnimationActive={false} />
             </AreaChart>
           </ResponsiveContainer>
         </div>

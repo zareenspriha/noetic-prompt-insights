@@ -18,7 +18,7 @@ export function ScoreTable({ models }: { models: ModelMetrics[] }) {
       <table className="w-full min-w-[820px] text-sm">
         <caption className="sr-only">Benchmark scores per model</caption>
         <thead>
-          <tr className="border-b border-white/5 text-left text-xs text-muted-foreground">
+          <tr className="border-b border-foreground/5 text-left text-xs text-muted-foreground">
             <th scope="col" className="px-3 py-2 font-medium">Model</th>
             <th scope="col" className="px-3 py-2 font-medium">Topic macro-F1</th>
             <th scope="col" className="px-3 py-2 font-medium">Sensitivity macro-F1</th>
@@ -34,7 +34,7 @@ export function ScoreTable({ models }: { models: ModelMetrics[] }) {
               m.confidentialFalseNegatives;
             const caught = total - m.confidentialFalseNegatives;
             return (
-              <tr key={m.model} className="border-b border-white/[0.04] last:border-0">
+              <tr key={m.model} className="border-b border-foreground/[0.04] last:border-0">
                 <th scope="row" className="px-3 py-3 text-left align-middle font-normal">
                   <span className="block font-medium">{MODEL_LABEL[m.model]}</span>
                   <span className="block font-mono text-xs text-muted-foreground">{m.modelVersion}</span>

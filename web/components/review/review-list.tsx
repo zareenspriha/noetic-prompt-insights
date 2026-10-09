@@ -1,5 +1,6 @@
 import { cn } from "@/lib/utils";
 import type { ReviewItem } from "@/types/api";
+import { Masked } from "@/components/shared/masked";
 import { ReasonBadge } from "./reason-badge";
 
 export function ReviewList({
@@ -24,11 +25,11 @@ export function ReviewList({
                 onClick={() => onSelect(item.id)}
                 className={cn(
                   "flex w-full flex-col items-start gap-2 rounded-lg border p-3 text-left transition-colors",
-                  on ? "border-primary/50 bg-primary/[0.08]" : "border-transparent hover:bg-white/[0.03]",
+                  on ? "border-primary/50 bg-primary/[0.08]" : "border-transparent hover:bg-foreground/[0.03]",
                 )}
               >
                 <ReasonBadge reason={item.reason} />
-                <span className="font-mono text-[12.5px] leading-normal text-foreground/85">{item.textRedacted}</span>
+                <span className="font-mono text-[12.5px] leading-normal text-foreground/85"><Masked text={item.textRedacted} /></span>
               </button>
             </li>
           );

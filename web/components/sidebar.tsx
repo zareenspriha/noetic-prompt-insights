@@ -1,24 +1,25 @@
 "use client";
 
+import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { BarChart3, FlaskConical, Inbox, Scale, ShieldCheck } from "lucide-react";
+import { BarChart3, FlaskConical, Inbox, Scale, ShieldCheck, Swords } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { DemoToggle } from "@/components/demo-toggle";
-import { Logo } from "@/components/logo";
 import { useReviewQueue } from "@/lib/api";
 
 const GROUPS = [
-  { label: "Insights", items: [{ href: "/", label: "Weekly Report", icon: BarChart3 }] },
+  { label: "Insights", items: [{ href: "/", label: "Weekly report", icon: BarChart3 }] },
   {
     label: "Classifier",
     items: [
-      { href: "/classify", label: "Classify", icon: FlaskConical },
-      { href: "/review", label: "Review Queue", icon: Inbox, badge: "review" as const },
-      { href: "/models", label: "Model Comparison", icon: Scale },
+      { href: "/classify", label: "Classify a prompt", icon: FlaskConical },
+      { href: "/review", label: "Review queue", icon: Inbox, badge: "review" as const },
+      { href: "/models", label: "Model comparison", icon: Scale },
+      { href: "/challenge", label: "Beat the detector", icon: Swords },
     ],
   },
-  { label: "Governance", items: [{ href: "/about", label: "Data & Trust", icon: ShieldCheck }] },
+  { label: "Governance", items: [{ href: "/about", label: "Data and trust", icon: ShieldCheck }] },
 ];
 
 export function Sidebar() {
@@ -26,21 +27,19 @@ export function Sidebar() {
   const { data: review } = useReviewQueue();
 
   return (
-    <aside className="sticky top-0 z-10 flex shrink-0 flex-col gap-5 border-b border-white/5 bg-black/60 px-4 py-4 backdrop-blur md:h-screen md:w-64 md:border-b-0 md:border-r md:py-6">
-      <Link href="/" className="flex items-center gap-2.5 px-2">
-        <Logo />
-        <span className="leading-tight">
-          <span className="block text-[15px] font-semibold tracking-tight">Prompt Insights</span>
-          <span className="block text-xs text-muted-foreground">AI usage &amp; risk</span>
+    <aside className="sticky top-0 z-10 flex shrink-0 flex-col gap-5 border-b border-border bg-secondary px-4 py-4 md:h-screen md:w-64 md:border-b-0 md:border-r md:py-7">
+      <Link href="/" className="px-2 text-foreground no-underline">
+        {/* The wordmark carries the product's own idea: part of it is blacked out. */}
+        <span className="block font-serif text-2xl font-medium tracking-tight">
+          Prompt <span className="redaction mx-0 text-ink">Insig</span>hts
         </span>
+        <span className="mt-0.5 block text-[13px] text-muted-foreground">What people ask AI, minus the secrets</span>
       </Link>
 
       <nav aria-label="Main" className="flex gap-1 overflow-x-auto md:flex-col md:gap-5 md:overflow-visible">
         {GROUPS.map((g) => (
           <div key={g.label} className="flex gap-1 md:flex-col">
-            <p className="hidden px-3 pb-1 text-[11px] font-medium uppercase tracking-wider text-muted-foreground/70 md:block">
-              {g.label}
-            </p>
+            <p className="hidden px-3 pb-1 text-[13px] text-muted-foreground md:block">{g.label}</p>
             {g.items.map(({ href, label, icon: Icon, ...rest }) => {
               const active = href === "/" ? pathname === "/" : pathname.startsWith(href);
               const count = "badge" in rest && review ? review.length : null;
@@ -50,17 +49,19 @@ export function Sidebar() {
                   href={href}
                   aria-current={active ? "page" : undefined}
                   className={cn(
-                    "group relative flex items-center gap-2.5 whitespace-nowrap rounded-lg px-3 py-2 text-sm text-muted-foreground transition-colors hover:bg-white/[0.04] hover:text-foreground",
-                    active && "bg-primary/10 text-foreground",
+                    "flex items-center gap-2.5 whitespace-nowrap rounded-lg px-3 py-2 text-[15px] transition-colors",
+                    active ? "bg-ink text-white" : "text-foreground hover:bg-foreground/[0.05]",
                   )}
                 >
-                  {active && (
-                    <span className="absolute inset-y-1.5 left-0 hidden w-0.5 rounded-full bg-primary shadow-[0_0_12px_var(--primary)] md:block" />
-                  )}
-                  <Icon className={cn("size-4", active && "text-primary")} aria-hidden />
+                  <Icon className={cn("size-4", active ? "text-white" : "text-muted-foreground")} aria-hidden />
                   {label}
                   {count !== null && count > 0 && (
-                    <span className="ml-auto rounded-full bg-primary/15 px-1.5 text-[11px] font-medium text-primary tabular-nums">
+                    <span
+                      className={cn(
+                        "ml-auto min-w-5 rounded-full px-1.5 text-center text-xs font-semibold tabular-nums",
+                        active ? "bg-white/20 text-white" : "bg-[#dcd6ee] text-foreground",
+                      )}
+                    >
                       {count}
                     </span>
                   )}
@@ -71,7 +72,11 @@ export function Sidebar() {
         ))}
       </nav>
 
-      <div className="hidden md:mt-auto md:block">
+      <div className="hidden flex-col gap-3 md:mt-auto md:flex">
+        <p className="flex items-center gap-2.5 px-3 text-[13px] text-muted-foreground">
+          Built for
+          <Image src="/noetic-logo.png" alt="Noetic" width={102} height={22} className="h-[22px] w-auto" />
+        </p>
         <DemoToggle />
       </div>
     </aside>

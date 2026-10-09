@@ -20,12 +20,12 @@ export function TrendChart({ data, topic }: { data: TrendPoint[]; topic?: Topic 
       <div className="h-72" role="img" aria-label="Stacked area chart of weekly prompts by topic">
         <ResponsiveContainer width="100%" height="100%">
           <AreaChart data={rows} margin={{ top: 4, right: 4, bottom: 0, left: -16 }}>
-            <CartesianGrid stroke="rgb(255 255 255 / 0.06)" vertical={false} />
+            <CartesianGrid stroke="rgb(31 35 55 / 0.06)" vertical={false} />
             <XAxis dataKey="week" tick={{ fill: "var(--muted-foreground)", fontSize: 12 }} axisLine={false} tickLine={false} />
             <YAxis tick={{ fill: "var(--muted-foreground)", fontSize: 12 }} axisLine={false} tickLine={false} />
             <Tooltip
-              cursor={{ stroke: "rgb(255 255 255 / 0.15)" }}
-              contentStyle={{ background: "#0a0e13", border: "1px solid rgb(255 255 255 / 0.1)", borderRadius: 10, fontSize: 12 }}
+              cursor={{ stroke: "rgb(31 35 55 / 0.15)" }}
+              contentStyle={{ background: "var(--card)", border: "1px solid rgb(31 35 55 / 0.1)", borderRadius: 10, fontSize: 12 }}
               labelStyle={{ color: "var(--foreground)" }}
               formatter={(v, name) => [v, TOPIC_LABEL[name as keyof typeof TOPIC_LABEL] ?? name]}
             />

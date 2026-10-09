@@ -31,7 +31,7 @@ function Select<T extends string>({
       <select
         value={value ?? ""}
         onChange={(e) => onChange((e.target.value || null) as T | null)}
-        className="h-9 rounded-lg border border-white/10 bg-white/[0.03] px-2.5 text-sm text-foreground outline-none focus-visible:ring-2 focus-visible:ring-ring"
+        className="h-9 rounded-lg border border-foreground/10 bg-foreground/[0.03] px-2.5 text-sm text-foreground outline-none focus-visible:ring-2 focus-visible:ring-ring"
       >
         {allLabel && <option value="">{allLabel}</option>}
         {options.map((o) => (
@@ -99,7 +99,7 @@ export function FilterBar({
         <button
           type="button"
           onClick={() => setFilters(DEFAULT_FILTERS)}
-          className="inline-flex h-9 items-center gap-1.5 rounded-lg px-3 text-sm text-muted-foreground hover:bg-white/5 hover:text-foreground"
+          className="inline-flex h-9 items-center gap-1.5 rounded-lg px-3 text-sm text-muted-foreground hover:bg-foreground/5 hover:text-foreground"
         >
           <RotateCcw className="size-3.5" aria-hidden /> Reset
         </button>

@@ -35,7 +35,7 @@ export function EmptyState({
       {planned && (
         <ul className="mt-2 grid w-full max-w-md gap-2 text-left text-sm">
           {planned.map((p) => (
-            <li key={p} className="flex items-center gap-2 rounded-lg bg-white/[0.03] px-3 py-2 text-muted-foreground">
+            <li key={p} className="flex items-center gap-2 rounded-lg bg-foreground/[0.03] px-3 py-2 text-muted-foreground">
               <CircleDashed className="size-3.5 shrink-0 text-primary/70" aria-hidden />
               {p}
             </li>

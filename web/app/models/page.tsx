@@ -37,7 +37,7 @@ const pill = (on: boolean) =>
     "min-h-9 rounded-lg border px-3 text-sm transition-colors",
     on
       ? "border-primary/55 bg-primary/15 text-accent-foreground"
-      : "border-white/10 bg-white/[0.03] text-foreground/80 hover:bg-white/[0.06]",
+      : "border-foreground/10 bg-foreground/[0.03] text-foreground/80 hover:bg-foreground/[0.06]",
   );
 
 export default function ModelsPage() {
@@ -52,7 +52,7 @@ export default function ModelsPage() {
       >
         {data && (
           <span
-            className="rounded-full border border-white/10 bg-white/[0.03] px-2.5 py-1 font-mono text-xs text-muted-foreground"
+            className="rounded-full border border-foreground/10 bg-foreground/[0.03] px-2.5 py-1 font-mono text-xs text-muted-foreground"
             title={`sha256 ${data.benchmark.sha256}`}
           >
             {data.n} rows · frozen {data.benchmark.frozenAt.slice(0, 10)} · {data.benchmark.sha256.slice(0, 8)}
