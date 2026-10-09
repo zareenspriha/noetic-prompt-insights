@@ -1,4 +1,6 @@
 import { Masked } from "@/components/shared/masked";
+import { OwaspBadge } from "@/components/shared/owasp-badge";
+import { owaspForSpan } from "@/lib/owasp";
 import type { RiskSpan } from "@/types/api";
 
 export const SPAN_LABEL: Record<RiskSpan["kind"], string> = {
@@ -38,7 +40,7 @@ export function RedactedText({ text, spans }: { text: string; spans: RiskSpan[] 
           seg.kind ? (
             <mark
               key={i}
-              title={SPAN_LABEL[seg.kind]}
+              title={`${SPAN_LABEL[seg.kind]} · OWASP ${owaspForSpan(seg.kind, text)}`}
               className="rounded bg-sev-critical/15 px-1 text-sev-critical shadow-[inset_0_-2px_0_var(--sev-critical)]"
             >
               <Masked text={seg.text} />
@@ -53,11 +55,11 @@ export function RedactedText({ text, spans }: { text: string; spans: RiskSpan[] 
       <div className="mt-3 flex flex-wrap gap-2">
         {kinds.length ? (
           kinds.map((k) => (
-            <span
-              key={k}
-              className="rounded-full border border-sev-critical/35 bg-sev-critical/10 px-2.5 py-0.5 text-xs text-sev-critical"
-            >
-              {SPAN_LABEL[k]}
+            <span key={k} className="inline-flex items-center gap-1.5">
+              <span className="rounded-full border border-sev-critical/35 bg-sev-critical/10 px-2.5 py-0.5 text-xs text-sev-critical">
+                {SPAN_LABEL[k]}
+              </span>
+              <OwaspBadge id={owaspForSpan(k, text)} />
             </span>
           ))
         ) : (

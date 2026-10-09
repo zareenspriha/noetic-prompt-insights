@@ -15,12 +15,15 @@ import { TrendChart } from "@/components/report/trend-chart";
 import { TeamTopicHeatmap } from "@/components/report/team-topic-heatmap";
 import { FlagsTable } from "@/components/report/flags-table";
 import { DEFAULT_FILTERS, FilterBar, type Filters } from "@/components/report/filter-bar";
+import { OwaspBreakdown } from "@/components/report/owasp-breakdown";
+import { OWASP, owaspForFlag, type OwaspId } from "@/lib/owasp";
 
 const btn =
   "no-print inline-flex items-center gap-1.5 rounded-lg border border-input bg-card px-3 py-1.5 text-sm font-medium hover:bg-muted disabled:cursor-not-allowed disabled:opacity-50";
 
 export default function WeeklyReportPage() {
   const [filters, setFilters] = useState<Filters>(DEFAULT_FILTERS);
+  const [owasp, setOwasp] = useState<OwaspId | null>(null);
   // Week + model are server-side filters; team/topic/severity filter the loaded report.
   const { data, isLoading, error } = useWeeklyReport({ model: filters.model });
 
@@ -35,7 +38,8 @@ export default function WeeklyReportPage() {
     [data],
   );
 
-  const flags = useMemo(
+  // Flags after team/topic/severity filters; the OWASP card counts these.
+  const scoped = useMemo(
     () =>
       (data?.flags ?? []).filter(
         (f) =>
@@ -45,6 +49,7 @@ export default function WeeklyReportPage() {
       ),
     [data, filters],
   );
+  const flags = useMemo(() => (owasp ? scoped.filter((f) => owaspForFlag(f).includes(owasp)) : scoped), [scoped, owasp]);
 
   const selectCell = (team: string, topic: (typeof DEFAULT_FILTERS)["topic"]) =>
     setFilters(
@@ -147,8 +152,15 @@ export default function WeeklyReportPage() {
           </div>
 
           <ChartCard
+            title="Risk by OWASP category"
+            description="Flags mapped to the OWASP Top 10 for LLM Applications (2025). Severity comes from our rules; OWASP names the type of risk."
+          >
+            <OwaspBreakdown flags={scoped} selected={owasp} onSelect={setOwasp} />
+          </ChartCard>
+
+          <ChartCard
             title="Flagged prompts"
-            description={`${flags.length} of ${data.flags.length} flags${filters.team || filters.topic || filters.severity ? " (filtered)" : ""}. Text is redacted; exports leave it out entirely.`}
+            description={`${flags.length} of ${data.flags.length} flags${filters.team || filters.topic || filters.severity || owasp ? " (filtered)" : ""}${owasp ? `, ${owasp} ${OWASP[owasp].name}` : ""}. Text is redacted; exports leave it out entirely.`}
           >
             {flags.length ? (
               <FlagsTable flags={flags} />
