@@ -87,13 +87,10 @@ def test_anthropic_mock_transport(monkeypatch):
         lambda request: httpx.Response(
             200,
             json={
+                "stop_reason": "end_turn",
                 "content": [
-                    {
-                        "type": "tool_use",
-                        "name": "submit_result",
-                        "input": {"topic": "writing", "sensitivity": "internal"},
-                    }
-                ]
+                    {"type": "text", "text": '{"topic": "writing", "sensitivity": "internal"}'}
+                ],
             },
         )
     )

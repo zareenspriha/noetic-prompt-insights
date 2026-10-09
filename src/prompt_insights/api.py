@@ -194,7 +194,10 @@ def event_vectors():
     return {e["event_id"]: v for e, v in zip(rows, vectors)}, per_event_ms
 
 
-LLM_LABELS = Path(os.environ.get("PI_LLM_LABELS", "artifacts/llm-event-labels.json"))
+# Saved LLM results live in git (ids, labels and numbers only; no prompt text, no keys) so the
+# whole team gets them. Paid runs write them; requests only read them.
+LLM_RESULTS = Path(__file__).resolve().parents[2] / "data/llm-results"
+LLM_LABELS = Path(os.environ.get("PI_LLM_LABELS", LLM_RESULTS / "llm-event-labels.json"))
 NO_LLM_LABELS = (
     "No complete LLM labels for these events. Run once, with consent to the paid calls: "
     "python -m prompt_insights label-events --mode anthropic --yes"
@@ -420,10 +423,42 @@ def undo_feedback(request: Undo):
 # ---------- model comparison ----------
 
 
-@lru_cache(maxsize=1)
-def metrics():
-    """Scores on the frozen benchmark, computed once per process (it does not change)."""
+LLM_EVAL = Path(os.environ.get("PI_LLM_EVAL", LLM_RESULTS / "provider-eval-benchmark.json"))
 
+
+def saved_llm_run():
+    """A saved `eval-provider` run on this exact frozen benchmark, or None.
+
+    /metrics never calls the provider; it only scores answers saved by an approved run.
+    """
+    try:
+        run = json.loads(LLM_EVAL.read_text())
+        rows, meta = bench.load_benchmark()
+        answers = run["predictions"]
+        complete = run["dataset"]["sha256"] == meta["sha256"] and all(
+            answers[r["id"]]["topic"] in TOPICS
+            and answers[r["id"]]["sensitivity"] in ("public", "internal", "confidential")
+            for r in rows
+        )
+    except (OSError, ValueError, KeyError, TypeError):
+        return None
+    return run if complete else None
+
+
+def metrics():
+    """Recomputed only when a saved LLM run appears or changes."""
+    try:
+        stamp = LLM_EVAL.stat().st_mtime_ns
+    except OSError:
+        stamp = None
+    return _metrics(stamp)
+
+
+metrics.cache_clear = lambda: _metrics.cache_clear()
+
+
+@lru_cache(maxsize=2)
+def _metrics(_llm_eval_stamp):
     def keyword(text):
         return keyword_topic(text), classify_sensitivity(text)
 
@@ -431,9 +466,26 @@ def metrics():
         topic = index()["topic"].explain(text)["label"]
         return topic, risk.assess(text, topic, "public")["sensitivity"]
 
-    return bench.benchmark_metrics(
-        [("keyword", "keyword baseline + policy markers", keyword), ("knn", MODEL_VERSION, knn)]
-    )
+    models = [
+        ("keyword", "keyword baseline + policy markers", keyword),
+        ("knn", MODEL_VERSION, knn),
+    ]
+    run = saved_llm_run()
+    if run is None:
+        return bench.benchmark_metrics(models)
+    rows, _ = bench.load_benchmark()
+    by_text = {r["text"]: run["predictions"][r["id"]] for r in rows}
+
+    def llm(text):
+        # Same rule layer as k-NN, so the comparison is like for like.
+        answer = by_text[text]
+        return answer["topic"], risk.assess(text, answer["topic"], answer["sensitivity"])[
+            "sensitivity"
+        ]
+
+    extras = dict(p50_latency_ms=run["latencyMs"]["p50"], cost_per_1k_usd=run["costUsd"]["per1k"])
+    version = ", ".join(run["modelVersions"]) or "llm"
+    return bench.benchmark_metrics(models + [("llm", version, llm, extras)], compare=("knn", "llm"))
 
 
 @app.get("/metrics")

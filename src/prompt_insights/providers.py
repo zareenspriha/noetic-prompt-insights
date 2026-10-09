@@ -149,6 +149,11 @@ def evaluate_provider(rows, mode, allow_live=False, transport=None, max_failures
     return dict(
         mode=mode,
         modelVersions=sorted({p["modelVersion"] for p in predictions.values()}),
+        # Raw LLM answers per row id, for /metrics agreement. No text: the frozen file has it.
+        predictions={
+            row_id: dict(topic=p["topic"], sensitivity=p["sensitivity"])
+            for row_id, p in predictions.items()
+        },
         rows=len(rows),
         answered=len(answered),
         failed=failures,
