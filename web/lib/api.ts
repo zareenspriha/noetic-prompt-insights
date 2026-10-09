@@ -99,7 +99,7 @@ export function useClassify() {
         : http<ClassifyResponse>("/classify", { method: "POST", body: JSON.stringify(body) }),
     // The backend adds prompts that need review to the queue; show them without waiting for the cache.
     onSuccess: (result) => {
-      if (result.needsReview) queryClient.invalidateQueries({ queryKey: ["review", demo] });
+      if (result.needsReview) queryClient.invalidateQueries({ queryKey: reviewQueueKey(demo) });
     },
   });
 }
