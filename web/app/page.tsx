@@ -6,6 +6,7 @@ import { AlertOctagon, FileDown, Lock, MessageSquareText, Printer, Sparkles } fr
 import { errorMessage, useWeeklyReport } from "@/lib/api";
 import { exportReportCsv } from "@/lib/export";
 import { TOPIC_LABEL } from "@/lib/tokens";
+import { SyntheticStamp } from "@/components/shared/synthetic-stamp";
 import { KpiTile } from "@/components/shared/kpi-tile";
 import { PageHeader } from "@/components/shared/page-header";
 import { Skeleton } from "@/components/shared/skeleton";
@@ -17,7 +18,7 @@ import { FlagsTable } from "@/components/report/flags-table";
 import { DEFAULT_FILTERS, FilterBar, type Filters } from "@/components/report/filter-bar";
 
 const btn =
-  "no-print inline-flex items-center gap-1.5 rounded-lg border border-white/10 bg-white/5 px-3 py-1.5 text-sm hover:bg-white/10 disabled:cursor-not-allowed disabled:opacity-50";
+  "no-print inline-flex items-center gap-1.5 rounded-lg border border-input bg-card px-3 py-1.5 text-sm font-medium hover:bg-muted disabled:cursor-not-allowed disabled:opacity-50";
 
 export default function WeeklyReportPage() {
   const [filters, setFilters] = useState<Filters>(DEFAULT_FILTERS);
@@ -56,14 +57,12 @@ export default function WeeklyReportPage() {
   return (
     <div className="mx-auto max-w-7xl">
       <PageHeader
-        eyebrow={data ? `Week ${data.week}` : "Weekly report"}
+        eyebrow={data ? data.week.replace(/^(\d{4})-W0?(\d+)$/, "Week $2 of $1") : "Weekly report"}
         title="What people used AI for this week"
-        description="Topics and risk across every team, from the AI gateway log. Prompt text is redacted and small groups are hidden."
+        description="Topics and risk across every team, from the AI gateway log. Secrets are blacked out and groups under ten prompts are hidden."
       >
         {data?.synthetic && (
-          <span className="rounded-full border border-sev-medium/30 bg-sev-medium/10 px-2.5 py-1 text-xs text-sev-medium">
-            Synthetic data
-          </span>
+          <SyntheticStamp />
         )}
         <button type="button" className={btn} disabled={!data} onClick={() => data && exportReportCsv(data, flags)}>
           <FileDown className="size-4" aria-hidden /> CSV

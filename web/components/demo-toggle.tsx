@@ -10,7 +10,7 @@ export function DemoToggle() {
       <div className="text-sm">
         <p className="font-medium">Demo mode</p>
         <p className="flex items-center gap-1.5 text-xs text-muted-foreground">
-          <span className={cn("size-1.5 rounded-full", demo ? "bg-sev-medium" : "bg-emerald-400")} />
+          <span className={cn("size-1.5 rounded-full", demo ? "bg-sev-medium" : "bg-good")} />
           {demo ? "Seeded synthetic data" : "Live API"}
         </p>
       </div>
@@ -22,7 +22,7 @@ export function DemoToggle() {
         onClick={() => setDemo(!demo)}
         className={cn(
           "relative h-5 w-9 shrink-0 rounded-full transition-colors focus-visible:ring-2 focus-visible:ring-ring",
-          demo ? "bg-primary" : "bg-white/15",
+          demo ? "bg-primary" : "bg-foreground/15",
         )}
       >
         <span

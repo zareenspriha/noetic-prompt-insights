@@ -1,3 +1,4 @@
+import { Masked } from "@/components/shared/masked";
 import type { RiskSpan } from "@/types/api";
 
 export const SPAN_LABEL: Record<RiskSpan["kind"], string> = {
@@ -32,18 +33,20 @@ export function RedactedText({ text, spans }: { text: string; spans: RiskSpan[] 
   const kinds = [...new Set(spans.map((s) => s.kind))];
   return (
     <div>
-      <p className="rounded-lg bg-black/50 p-3.5 font-mono text-[13px] leading-relaxed break-words">
+      <p className="rounded-lg bg-muted p-3.5 font-mono text-[13px] leading-relaxed break-words">
         {segments(text, spans).map((seg, i) =>
           seg.kind ? (
             <mark
               key={i}
               title={SPAN_LABEL[seg.kind]}
-              className="rounded bg-sev-critical/15 px-1 text-red-300 shadow-[inset_0_-2px_0_var(--sev-critical)]"
+              className="rounded bg-sev-critical/15 px-1 text-sev-critical shadow-[inset_0_-2px_0_var(--sev-critical)]"
             >
-              {seg.text}
+              <Masked text={seg.text} />
             </mark>
           ) : (
-            <span key={i}>{seg.text}</span>
+            <span key={i}>
+              <Masked text={seg.text} />
+            </span>
           ),
         )}
       </p>
@@ -52,7 +55,7 @@ export function RedactedText({ text, spans }: { text: string; spans: RiskSpan[] 
           kinds.map((k) => (
             <span
               key={k}
-              className="rounded-full border border-sev-critical/35 bg-sev-critical/10 px-2.5 py-0.5 text-xs text-red-300"
+              className="rounded-full border border-sev-critical/35 bg-sev-critical/10 px-2.5 py-0.5 text-xs text-sev-critical"
             >
               {SPAN_LABEL[k]}
             </span>

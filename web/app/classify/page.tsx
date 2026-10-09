@@ -23,10 +23,10 @@ const EXAMPLES = [
 
 type Tone = "agree" | "disagree" | "review" | "neutral";
 const TONE_CLASS: Record<Tone, { box: string; dot: string; title: string }> = {
-  agree: { box: "border-emerald-400/30 bg-emerald-400/[0.07]", dot: "bg-emerald-400", title: "text-emerald-300" },
-  disagree: { box: "border-sev-high/35 bg-sev-high/[0.08]", dot: "bg-sev-high", title: "text-orange-300" },
-  review: { box: "border-sev-medium/35 bg-sev-medium/[0.08]", dot: "bg-sev-medium", title: "text-yellow-200" },
-  neutral: { box: "border-white/10 bg-white/[0.03]", dot: "bg-muted-foreground", title: "text-foreground/80" },
+  agree: { box: "border-good/30 bg-good/[0.07]", dot: "bg-good", title: "text-good" },
+  disagree: { box: "border-sev-high/35 bg-sev-high/[0.08]", dot: "bg-sev-high", title: "text-sev-high" },
+  review: { box: "border-sev-medium/35 bg-sev-medium/[0.08]", dot: "bg-sev-medium", title: "text-sev-medium" },
+  neutral: { box: "border-foreground/10 bg-foreground/[0.03]", dot: "bg-muted-foreground", title: "text-foreground/80" },
 };
 
 /** One-line verdict: did the two models agree, and does a person need to look? */
@@ -72,7 +72,7 @@ export default function ClassifyPage() {
                   "min-h-9 rounded-full border px-3 text-sm transition-colors",
                   text === ex.text
                     ? "border-primary/50 bg-primary/15 text-accent-foreground"
-                    : "border-white/10 bg-white/[0.03] text-foreground/80 hover:bg-white/[0.06]",
+                    : "border-foreground/10 bg-foreground/[0.03] text-foreground/80 hover:bg-foreground/[0.06]",
                 )}
               >
                 {ex.label}
@@ -93,7 +93,7 @@ export default function ClassifyPage() {
               if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) run();
             }}
             placeholder="Paste a prompt someone might send to an AI tool…"
-            className="w-full resize-y rounded-lg border border-input bg-black/50 px-3.5 py-3 font-mono text-[13px] leading-relaxed placeholder:text-muted-foreground/70"
+            className="w-full resize-y rounded-lg border border-input bg-muted px-3.5 py-3 font-mono text-[13px] leading-relaxed placeholder:text-muted-foreground/70"
           />
 
           <div className="flex flex-wrap items-center justify-between gap-3">
@@ -106,7 +106,7 @@ export default function ClassifyPage() {
                 onClick={() => setAllowLlm(!allowLlm)}
                 className={cn(
                   "relative h-6 w-11 shrink-0 rounded-full transition-colors",
-                  allowLlm ? "bg-primary" : "bg-white/15",
+                  allowLlm ? "bg-primary" : "bg-foreground/15",
                 )}
               >
                 <span

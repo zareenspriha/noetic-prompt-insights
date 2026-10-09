@@ -5,17 +5,17 @@ export const REASON: Record<ReviewItem["reason"], { label: string; why: string; 
   disagreement: {
     label: "Disagreement",
     why: "kNN and the LLM picked different labels.",
-    className: "border-sev-high/40 bg-sev-high/10 text-orange-300",
+    className: "border-sev-high/40 bg-sev-high/10 text-sev-high",
   },
   low_similarity: {
     label: "Unfamiliar",
     why: "No labelled example is close, so kNN was guessing.",
-    className: "border-sev-medium/40 bg-sev-medium/10 text-yellow-200",
+    className: "border-sev-medium/40 bg-sev-medium/10 text-sev-medium",
   },
   flagged: {
     label: "High risk",
     why: "Risk rules found a high or critical pattern. Confirm the label.",
-    className: "border-sev-critical/40 bg-sev-critical/10 text-red-300",
+    className: "border-sev-critical/40 bg-sev-critical/10 text-sev-critical",
   },
 };
 

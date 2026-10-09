@@ -1,3 +1,4 @@
+import { Masked } from "@/components/shared/masked";
 import { SeverityBadge } from "@/components/shared/severity-badge";
 import { TopicBadge } from "@/components/shared/topic-badge";
 import { TOPIC_LABEL } from "@/lib/tokens";
@@ -14,12 +15,12 @@ const pill = (on: boolean) =>
     "inline-flex min-h-10 items-center gap-2 rounded-lg border px-3 text-sm transition-colors",
     on
       ? "border-primary/55 bg-primary/15 text-accent-foreground"
-      : "border-white/10 bg-white/[0.03] text-foreground/80 hover:bg-white/[0.06]",
+      : "border-foreground/10 bg-foreground/[0.03] text-foreground/80 hover:bg-foreground/[0.06]",
   );
 
 function ModelAnswer({ label, prediction }: { label: string; prediction: Prediction | null }) {
   return (
-    <div className="rounded-lg bg-white/[0.025] p-3.5">
+    <div className="rounded-lg bg-foreground/[0.025] p-3.5">
       <p className="mb-2 text-xs text-muted-foreground">{label}</p>
       {prediction ? (
         <div className="flex flex-wrap items-center gap-2 text-sm">
@@ -57,8 +58,8 @@ export function CorrectionPanel({
           <ReasonBadge reason={item.reason} />
           <span className="text-sm text-muted-foreground">{REASON[item.reason].why}</span>
         </div>
-        <p className="rounded-lg bg-black/50 p-3.5 font-mono text-[13.5px] leading-relaxed break-words">
-          {item.textRedacted}
+        <p className="rounded-lg bg-muted p-3.5 font-mono text-[13.5px] leading-relaxed break-words">
+          <Masked text={item.textRedacted} />
         </p>
       </div>
 
@@ -102,7 +103,7 @@ export function CorrectionPanel({
         </div>
       </fieldset>
 
-      <div className="flex flex-wrap items-center gap-2.5 border-t border-white/[0.06] pt-4">
+      <div className="flex flex-wrap items-center gap-2.5 border-t border-foreground/[0.06] pt-4">
         <button
           type="button"
           onClick={onSave}
@@ -114,7 +115,7 @@ export function CorrectionPanel({
         <button
           type="button"
           onClick={onSkip}
-          className="min-h-11 rounded-lg border border-white/12 px-4 text-sm hover:bg-white/[0.04]"
+          className="min-h-11 rounded-lg border border-foreground/12 px-4 text-sm hover:bg-foreground/[0.04]"
         >
           Skip
         </button>

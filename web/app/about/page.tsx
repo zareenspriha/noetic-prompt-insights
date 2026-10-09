@@ -7,6 +7,7 @@ import { PageHeader } from "@/components/shared/page-header";
 import { ChartCard } from "@/components/shared/chart-card";
 import { EmptyState } from "@/components/shared/empty-state";
 import { Skeleton } from "@/components/shared/skeleton";
+import { SyntheticStamp } from "@/components/shared/synthetic-stamp";
 import { SourceStats } from "@/components/about/source-stats";
 
 const PIPELINE = [
@@ -63,9 +64,7 @@ export default function DataTrustPage() {
         title="Data & Trust"
         description="Where the data comes from, how it's handled, and what it can't tell you."
       >
-        <span className="rounded-full border border-sev-medium/30 bg-sev-medium/10 px-2.5 py-1 text-xs text-sev-medium">
-          Synthetic data only
-        </span>
+        <SyntheticStamp>Synthetic data only</SyntheticStamp>
       </PageHeader>
 
       <div className="grid gap-4">
@@ -86,7 +85,7 @@ export default function DataTrustPage() {
         <ChartCard title="How a prompt is handled" description="From the gateway log to the weekly report.">
           <ol className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
             {PIPELINE.map((step, i) => (
-              <li key={step.title} className="rounded-lg bg-white/[0.025] p-4">
+              <li key={step.title} className="rounded-lg bg-foreground/[0.025] p-4">
                 <p className="flex items-center gap-2 font-medium">
                   <span className="grid size-6 place-items-center rounded-full bg-primary/15 text-xs text-primary tabular-nums">
                     {i + 1}
@@ -104,7 +103,7 @@ export default function DataTrustPage() {
             <ul className="grid gap-2.5 text-sm">
               {PROTECTIONS.map((p) => (
                 <li key={p} className="flex gap-2.5">
-                  <Check className="mt-0.5 size-4 shrink-0 text-emerald-400" aria-hidden />
+                  <Check className="mt-0.5 size-4 shrink-0 text-good" aria-hidden />
                   {p}
                 </li>
               ))}
@@ -132,7 +131,7 @@ export default function DataTrustPage() {
               <table className="w-full min-w-[480px] text-sm">
                 <caption className="sr-only">Proposed retention periods</caption>
                 <thead>
-                  <tr className="border-b border-white/5 text-left text-xs text-muted-foreground">
+                  <tr className="border-b border-foreground/5 text-left text-xs text-muted-foreground">
                     <th scope="col" className="py-2 pr-3 font-medium">Data</th>
                     <th scope="col" className="px-3 py-2 font-medium">Kept for</th>
                     <th scope="col" className="py-2 pl-3 font-medium">Then</th>
@@ -140,7 +139,7 @@ export default function DataTrustPage() {
                 </thead>
                 <tbody>
                   {RETENTION.map(([what, keep, then]) => (
-                    <tr key={what} className="border-b border-white/[0.04] last:border-0">
+                    <tr key={what} className="border-b border-foreground/[0.04] last:border-0">
                       <th scope="row" className="py-2.5 pr-3 text-left font-normal">{what}</th>
                       <td className="px-3 py-2.5">{keep}</td>
                       <td className="py-2.5 pl-3 text-muted-foreground">{then}</td>
