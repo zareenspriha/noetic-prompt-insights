@@ -551,19 +551,41 @@ def _metrics(_llm_eval_stamp):
     return bench.benchmark_metrics(models + [("llm", version, llm, extras)], compare=("knn", "llm"))
 
 
+def _visible_teams(scope):
+    teams = sorted({e["team_id"] for e in classifiable().values()})
+    return teams if scope == security.ALL_TEAMS else [t for t in teams if t == scope]
+
+
+@app.get("/ask/teams")
+def ask_teams(scope: str = Depends(security.require_admin)):
+    """The departments this admin may ask about: their own, or all while developing."""
+    return dict(teams=_visible_teams(scope))
+
+
 @app.post("/ask")
-def ask_team(request: ask.AskRequest):
+def ask_team(request: ask.AskRequest, scope: str = Depends(security.require_admin)):
     """Summary of what one team used AI for over the last N days. Teams only, never people.
-    The LLM runs only when allowLlm is true; otherwise the summary is rule-based."""
+    An admin sees only their own department. The LLM runs only when allowLlm is true;
+    otherwise the summary is rule-based."""
+    if scope != security.ALL_TEAMS and request.team != scope:
+        raise HTTPException(403, "You can only view your own department")
     mode = providers.configured_provider()
     labels = event_labels("knn")
-    teams = {e["team_id"] for e in classifiable().values()}
+    teams = set(_visible_teams(security.ALL_TEAMS))
     try:
-        return ask.answer(request, events(), lambda e: labels[e["event_id"]], teams, mode)
+        result = ask.answer(request, events(), lambda e: labels[e["event_id"]], teams, mode)
     except ask.AskRefused as error:
         raise HTTPException(422, str(error)) from None
     except LookupError as error:
         raise HTTPException(404, str(error)) from None
+    security.audit(
+        "ask",
+        f"admin:{scope}",
+        request.team,
+        None,
+        dict(question=request.question, days=request.days, source=result["source"]),
+    )
+    return result
 
 
 @app.get("/metrics")
