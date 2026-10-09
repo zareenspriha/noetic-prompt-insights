@@ -7,7 +7,6 @@ import { PageHeader } from "@/components/shared/page-header";
 import { ChartCard } from "@/components/shared/chart-card";
 import { EmptyState } from "@/components/shared/empty-state";
 import { Skeleton } from "@/components/shared/skeleton";
-import { SyntheticStamp } from "@/components/shared/synthetic-stamp";
 import { SourceStats } from "@/components/about/source-stats";
 
 const PIPELINE = [
@@ -64,7 +63,6 @@ export default function DataTrustPage() {
         title="Data & Trust"
         description="Where the data comes from, how it's handled, and what it can't tell you."
       >
-        <SyntheticStamp>Synthetic data only</SyntheticStamp>
       </PageHeader>
 
       <div className="grid gap-4">
