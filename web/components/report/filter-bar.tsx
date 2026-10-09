@@ -5,7 +5,7 @@ import { TOPIC_LABEL, SEVERITY_LABEL } from "@/lib/tokens";
 import { SEVERITIES, TOPICS, type Severity, type Topic } from "@/types/api";
 
 export type Filters = {
-  model: "knn" | "llm";
+  model: "knn" | "keyword" | "llm";
   team: string | null;
   topic: Topic | null;
   severity: Severity | null;
@@ -69,7 +69,8 @@ export function FilterBar({
         value={filters.model}
         options={[
           { value: "knn", label: "kNN (embedding)" },
-          { value: "llm", label: "LLM zero-shot" },
+          { value: "keyword", label: "Keyword baseline" },
+          { value: "llm", label: "LLM zero-shot (needs key)" },
         ]}
         onChange={(v) => setFilters({ ...filters, model: v ?? "knn" })}
       />

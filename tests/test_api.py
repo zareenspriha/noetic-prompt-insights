@@ -92,3 +92,32 @@ def test_sensitivity_comes_from_rules_not_synthetic_boilerplate(client):
     assert plain["knn"]["sensitivity"] == "public" and plain["knn"]["severity"] == "low"
     salary = client.post("/classify", json={"text": "Offer: base salary of $145,000"}).json()
     assert salary["knn"]["sensitivity"] == "confidential"
+
+
+SOURCES_CONTRACT = json.loads(
+    (Path(__file__).parent / "fixtures/sources-contract.json").read_text()
+)
+
+
+def test_sources_matches_frontend_contract_and_counts_add_up(client):
+    body = client.get("/sources").json()
+    same_shape(body, SOURCES_CONTRACT)
+    events = api.events()
+    assert body["received"] - body["deduped"] == len(events)
+    assert body["classified"] == len(api.classifiable())
+    assert body["classified"] + body["failed"] + body["blocked"] <= len(events)
+    # Counts only: nothing that could identify a prompt or a person.
+    text = json.dumps(body)
+    assert not any(e["event_id"] in text or e["user_id"] in text for e in events)
+
+
+def test_cors_allows_next_on_a_fallback_port_but_not_other_sites(client):
+    def allowed(origin):
+        response = client.options(
+            "/report/weekly",
+            headers={"Origin": origin, "Access-Control-Request-Method": "GET"},
+        )
+        return response.headers.get("access-control-allow-origin") == origin
+
+    assert allowed("http://localhost:3001") and allowed("http://127.0.0.1:3002")
+    assert not allowed("https://evil.example") and not allowed("http://localhost.evil.example")

@@ -11,6 +11,7 @@ import threading
 import uuid
 from contextlib import asynccontextmanager
 import time
+from datetime import datetime, timezone
 from functools import lru_cache
 from typing import Literal
 
@@ -37,6 +38,9 @@ EVENTS = Path(
     os.environ.get("PI_EVENTS", Path(__file__).resolve().parents[2] / "data/demo-events.ndjson")
 )
 ORIGINS = os.environ.get("PI_CORS_ORIGINS", "http://localhost:3000,http://127.0.0.1:3000")
+# Next.js moves to 3001, 3002, ... when 3000 is busy; any local port is still this machine.
+LOCAL_ORIGIN = r"http://(localhost|127\.0\.0\.1)(:\d+)?"
+PROJECT1_URL = os.environ.get("PI_PROJECT1_URL") or None
 
 
 @asynccontextmanager
@@ -51,6 +55,7 @@ app = FastAPI(title="Prompt Insights API", lifespan=lifespan)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=[origin.strip() for origin in ORIGINS.split(",") if origin.strip()],
+    allow_origin_regex=LOCAL_ORIGIN,
     allow_methods=["GET", "POST"],
     allow_headers=["Content-Type"],
 )
@@ -217,6 +222,34 @@ def weekly_report(
         raise HTTPException(422, str(error)) from None
     except LookupError as error:
         raise HTTPException(404, str(error)) from None
+
+
+@lru_cache(maxsize=1)
+def source_stats():
+    """Import counts for the Data & Trust page. Counts only: no text, user or event ids."""
+    received = sum(1 for line in EVENTS.read_bytes().splitlines() if line.strip())
+    rows = events()
+    status = {s: sum(e["status"] == s for e in rows) for s in ("failed", "blocked")}
+    imported_at = datetime.fromtimestamp(EVENTS.stat().st_mtime, timezone.utc)
+    return dict(
+        received=received,
+        deduped=received - len(rows),  # identical repeats of an event_id, dropped on import
+        failed=status["failed"],
+        blocked=status["blocked"],
+        classified=len(classifiable()),
+        # Reports read the NDJSON export; GET /events returns metadata only, never text.
+        gateway=dict(
+            connected=False,
+            url=None,
+            lastImportAt=imported_at.isoformat(timespec="seconds").replace("+00:00", "Z"),
+        ),
+        project1DashboardUrl=PROJECT1_URL,
+    )
+
+
+@app.get("/sources")
+def sources():
+    return source_stats()
 
 
 # ---------- review queue and human feedback ----------

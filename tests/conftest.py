@@ -3,7 +3,14 @@ from fastapi.testclient import TestClient
 from prompt_insights import api, embed
 from test_model import fake_encode
 
-CACHES = (api.index, api.events, api.event_vectors, api.corrections, api.metrics)
+CACHES = (
+    api.index,
+    api.events,
+    api.event_vectors,
+    api.corrections,
+    api.metrics,
+    api.source_stats,
+)
 
 
 @pytest.fixture

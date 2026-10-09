@@ -2,7 +2,7 @@
 
 // OWNER: F2 (feat/classify-playground)
 import { useState } from "react";
-import { useClassify } from "@/lib/api";
+import { errorMessage, useClassify } from "@/lib/api";
 import { cn } from "@/lib/utils";
 import { PageHeader } from "@/components/shared/page-header";
 import { EmptyState } from "@/components/shared/empty-state";
@@ -122,7 +122,9 @@ export default function ClassifyPage() {
                 </p>
                 <p className="text-muted-foreground">
                   Only the redacted text is sent.
-                  {result ? ` Estimated cost ≈ $${result.llmCostEstimateUsd.toFixed(4)} per prompt.` : ""}
+                  {result && result.llmCostEstimateUsd > 0
+                    ? ` Estimated cost ≈ $${result.llmCostEstimateUsd.toFixed(4)} per prompt.`
+                    : " Needs an LLM API key on the backend."}
                 </p>
               </div>
             </div>
@@ -141,7 +143,7 @@ export default function ClassifyPage() {
           <EmptyState
             variant="error"
             title="Couldn't classify this prompt"
-            message={`${String(classify.error)}. Is the backend running? Turn on Demo mode to use seeded data.`}
+            message={errorMessage(classify.error)}
           />
         ) : classify.isPending ? (
           <div className="grid gap-4">

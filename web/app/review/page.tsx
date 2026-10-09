@@ -4,7 +4,7 @@
 import { useEffect, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
-import { reviewQueueKey, useFeedback, useReviewQueue, useUndoFeedback } from "@/lib/api";
+import { errorMessage, reviewQueueKey, useFeedback, useReviewQueue, useUndoFeedback } from "@/lib/api";
 import { useDemoMode } from "@/lib/demo-mode";
 import { TOPIC_LABEL } from "@/lib/tokens";
 import { PageHeader } from "@/components/shared/page-header";
@@ -67,7 +67,7 @@ export default function ReviewPage() {
         setSelectedId(item.id);
         toast("Correction undone");
       },
-      onError: (e) => toast.error(`Couldn't undo: ${String(e)}`),
+      onError: (e) => toast.error(`Couldn't undo: ${errorMessage(e)}`),
     });
 
   const save = () => {
@@ -86,7 +86,7 @@ export default function ReviewPage() {
             action: { label: "Undo", onClick: () => undoCorrection(res.undoToken, item, at) },
           });
         },
-        onError: (e) => toast.error(`Couldn't save: ${String(e)}`),
+        onError: (e) => toast.error(`Couldn't save: ${errorMessage(e)}`),
       },
     );
   };
@@ -121,7 +121,7 @@ export default function ReviewPage() {
         <EmptyState
           variant="error"
           title="Couldn't load the review queue"
-          message={`${String(error)}. Is the backend running? Turn on Demo mode to use seeded data.`}
+          message={errorMessage(error)}
         />
       ) : isLoading ? (
         <div className="flex flex-wrap gap-4">
