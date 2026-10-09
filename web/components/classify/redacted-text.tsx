@@ -40,7 +40,7 @@ export function RedactedText({ text, spans }: { text: string; spans: RiskSpan[] 
           seg.kind ? (
             <mark
               key={i}
-              title={`${SPAN_LABEL[seg.kind]} · OWASP ${owaspForSpan(seg.kind, text)}`}
+              title={SPAN_LABEL[seg.kind]}
               className="rounded bg-sev-critical/15 px-1 text-sev-critical shadow-[inset_0_-2px_0_var(--sev-critical)]"
             >
               <Masked text={seg.text} />
