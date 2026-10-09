@@ -86,11 +86,17 @@ export function score(attempts: Attempt[]) {
   };
 }
 
-/** Catch rate per OWASP category, in category order, for the categories played this round. */
-export function scoreByOwasp(attempts: Attempt[]) {
-  const ids = [...new Set(attempts.map((a) => secretById(a.secret).owasp))].sort();
-  return ids.map((owasp) => ({ owasp, ...score(attempts.filter((a) => secretById(a.secret).owasp === owasp)) }));
+/** Catch rate per group (e.g. OWASP category or topic), sorted by key, for the groups seen this round. */
+function scoreBy<K extends string>(attempts: Attempt[], keyOf: (a: Attempt) => K) {
+  const keys = [...new Set(attempts.map(keyOf))].sort();
+  return keys.map((key) => ({ key, ...score(attempts.filter((a) => keyOf(a) === key)) }));
 }
+
+/** Catch rate per OWASP category the player tested. */
+export const scoreByOwasp = (attempts: Attempt[]) => scoreBy(attempts, (a) => secretById(a.secret).owasp);
+
+/** Catch rate per topic, as k-NN labelled each prompt: what the work was about, not what was hidden. */
+export const scoreByTopic = (attempts: Attempt[]) => scoreBy(attempts, (a) => a.result.knn.topic);
 
 const isInjection = (id: SecretId) => id === "injection" || id === "system_prompt";
 

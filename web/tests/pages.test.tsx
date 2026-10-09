@@ -70,6 +70,8 @@ describe("Beat the detector", () => {
 
     const verdict = screen.getByRole("region", { name: "Verdict" });
     expect(await within(verdict).findByText("Slipped through")).toBeInTheDocument();
+    // The usage side: what the prompt was about, and that it still counts in the report.
+    expect(within(screen.getByLabelText("Topic")).getByText(/counts toward Coding in the weekly report/)).toBeInTheDocument();
     // Scoreboard: one attempt, nothing caught.
     expect(within(screen.getByRole("region", { name: "Scoreboard" })).getByText("0%")).toBeInTheDocument();
     const wall = screen.getByRole("region", { name: /Wall of escapes/ });
