@@ -61,7 +61,10 @@ works without the backend. Turn it off to use the real backend. If the backend r
 3. **Review Queue:** correct a label (keys 1–7, J/K, Enter). "Model updated" appears and the kNN index grows by one.
    Undo works.
 4. **Model Comparison:** scores on the frozen benchmark, agreement and Cohen's κ, clickable confusion matrices.
-5. **Data & Trust:** import counts, privacy rules, known limits.
+5. **Team insights:** pick a question ("What were they working on?", "What problems did they hit?",
+   "Anything sensitive or risky?", "How can I help them?"), a department and a time range. The answer comes with a
+   visual that fits the question. Free and rule-based by default; switch on the LLM for a written answer.
+6. **Data & Trust:** import counts, privacy rules, known limits.
 
 ## Results (frozen benchmark, 70 prompts, 19 confidential)
 
@@ -102,6 +105,7 @@ gateway export (NDJSON) → validate + dedupe → drop failed/blocked → kNN to
 | `GET /review` · `POST /feedback` · `POST /feedback/undo` | Review queue and corrections |
 | `GET /metrics` | Benchmark scores, confusion matrices, agreement, benchmark hash |
 | `GET /sources` | Import counts (received, duplicates, failed, blocked, classified) |
+| `POST /ask` | Team insights: a preset question about one team over the last N days, with the counts behind the answer. Teams only, never people. |
 
 Without an LLM configured, `allowLlm: true` returns **503** and `model=llm` returns **409** with the command to run. No GET ever makes a paid call.
 

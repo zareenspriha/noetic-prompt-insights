@@ -165,3 +165,44 @@ export interface Sources {
   gateway: { connected: boolean; url: string | null; lastImportAt: string | null };
   project1DashboardUrl: string | null;
 }
+
+// ---------- POST /ask (Team insights) ----------
+export const ASK_QUESTIONS = ["overview", "problems", "risks", "support"] as const;
+export type AskQuestion = (typeof ASK_QUESTIONS)[number];
+
+export interface AskRequest {
+  question: AskQuestion; // presets only: nobody can ask about an individual
+  team: string;
+  days: number; // 1-28, counted back from the newest event in the log
+  allowLlm: boolean; // paid call only when true
+}
+export interface TeamSummary {
+  overview: string; // answers the chosen question
+  themes: string[];
+  problems: string[];
+  risks: string[];
+  suggestions: string[];
+}
+export interface AskResponse {
+  team: string;
+  days: number;
+  question: AskQuestion;
+  questionText: string;
+  start: string; // ISO, Z
+  asOf: string; // newest event in the log, not today's date
+  prompts: number;
+  topics: { topic: Topic; count: number | null }[]; // null = hidden for privacy
+  severity: Record<Severity, number>;
+  problemPrompts: number;
+  problemsByTopic: { topic: Topic; count: number | null }[]; // empty when too few to break down
+  reasons: { reason: string; count: number }[];
+  minGroupSize: number;
+  summary: TeamSummary;
+  source: "llm" | "rules";
+  notice: string | null; // e.g. "No LLM is configured…"
+  modelVersion: string;
+  latencyMs: number | null;
+  costUsd: number | null;
+  inputTokens: number | null;
+  outputTokens: number | null;
+}
