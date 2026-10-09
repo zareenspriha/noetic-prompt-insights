@@ -12,6 +12,8 @@ import {
 import { ArrowDown, ArrowUp, ArrowUpDown } from "lucide-react";
 import { Masked } from "@/components/shared/masked";
 import { SeverityBadge } from "@/components/shared/severity-badge";
+import { OwaspBadge } from "@/components/shared/owasp-badge";
+import { owaspForFlag } from "@/lib/owasp";
 import { TOPIC_LABEL } from "@/lib/tokens";
 import { SEVERITIES, type Flag } from "@/types/api";
 
@@ -30,6 +32,17 @@ const columns = helper.columns([
       SEVERITIES.indexOf(a.getValue(id) as Flag["severity"]) -
       SEVERITIES.indexOf(b.getValue(id) as Flag["severity"]),
     cell: (info) => <SeverityBadge severity={info.getValue()} />,
+  }),
+  helper.display({
+    id: "owasp",
+    header: "OWASP",
+    cell: (info) => (
+      <span className="flex flex-col items-start gap-1">
+        {owaspForFlag(info.row.original).map((id) => (
+          <OwaspBadge key={id} id={id} />
+        ))}
+      </span>
+    ),
   }),
   helper.accessor("timestamp", {
     header: "When",
@@ -74,7 +87,7 @@ export function FlagsTable({ flags }: { flags: Flag[] }) {
 
   return (
     <div className="overflow-x-auto">
-      <table className="w-full min-w-[760px] text-sm">
+      <table className="w-full min-w-[900px] text-sm">
         <caption className="sr-only">Prompts flagged as sensitive this week, with redacted text</caption>
         <thead>
           {table.getHeaderGroups().map((group) => (

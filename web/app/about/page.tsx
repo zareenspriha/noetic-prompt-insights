@@ -8,6 +8,7 @@ import { ChartCard } from "@/components/shared/chart-card";
 import { EmptyState } from "@/components/shared/empty-state";
 import { Skeleton } from "@/components/shared/skeleton";
 import { SourceStats } from "@/components/about/source-stats";
+import { OwaspCoverage } from "@/components/about/owasp-coverage";
 
 const PIPELINE = [
   {
@@ -94,6 +95,13 @@ export default function DataTrustPage() {
               </li>
             ))}
           </ol>
+        </ChartCard>
+
+        <ChartCard
+          title="OWASP LLM Top 10 coverage"
+          description="Which of the ten risks a gateway prompt log can show. We only claim what we can see."
+        >
+          <OwaspCoverage />
         </ChartCard>
 
         <div className="grid gap-4 lg:grid-cols-2">
